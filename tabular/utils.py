@@ -4,6 +4,32 @@ import matplotlib.image as mpimg
 import matplotlib.animation as animation
 from matplotlib.colors import LinearSegmentedColormap
 from matplotlib.offsetbox import OffsetImage, AnnotationBbox
+import os
+
+
+def plot_rewards(total_rewards, cumulative_rewards):
+    os.makedirs("plots", exist_ok=True)
+    # Total rewards per episode
+    plt.figure(figsize=(12, 6))
+    plt.plot(total_rewards, label="Total Reward per Episode", color="blue")
+    plt.xlabel("Episode")
+    plt.ylabel("Reward")
+    plt.title("Total Reward per Episode")
+    plt.legend()
+    plt.grid()
+    plt.savefig("plots/total_reward_plot.png")
+    plt.show()
+
+    # Cumulative rewards
+    plt.figure(figsize=(12, 6))
+    plt.plot(cumulative_rewards, label="Cumulative Reward", color="green")
+    plt.xlabel("Episode")
+    plt.ylabel("Cumulative Reward")
+    plt.title("Cumulative Reward Over Episodes")
+    plt.legend()
+    plt.grid()
+    plt.savefig("plots/cumulative_reward_plot.png")
+    plt.show()
 
 
 def save_q_table(agent):

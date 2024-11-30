@@ -2,7 +2,14 @@ import networkx as nx
 import matplotlib.pyplot as plt
 import random
 
-from utils import save_q_table, visualize_heatmap, visualize_city, visualize_episode, visualize_episode_with_imgs
+from utils import (
+    save_q_table, 
+    visualize_heatmap, 
+    visualize_city, 
+    visualize_episode, 
+    visualize_episode_with_imgs,
+    plot_rewards
+)
 
 
 #### city graph ####
@@ -107,6 +114,11 @@ def main():
     
     # visu setup
     fig, ax = plt.subplots(figsize=(8, 8))
+    
+    # reward tracking
+    total_rewards = []
+    cumulative_rewards = []
+    cumulative_reward = 0
 
     # training
     episodes = 1000
@@ -129,9 +141,16 @@ def main():
             agent.update_q_value(state, action, reward, next_state)
             state = next_state
             total_reward += reward
+        
+        # update rewards
+        total_rewards.append(total_reward)
+        cumulative_reward += total_reward
+        cumulative_rewards.append(cumulative_reward)
     
     # heatmap
     visualize_heatmap(city, env.edge_usage, positions)
+    # reward plots
+    plot_rewards(total_rewards, cumulative_rewards)
     # save q table
     save_q_table(agent)
 
