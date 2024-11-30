@@ -1,11 +1,10 @@
 import networkx as nx
 import matplotlib.pyplot as plt
 import random
-import matplotlib.animation as animation
-import time
-from matplotlib.offsetbox import OffsetImage, AnnotationBbox
 import matplotlib.pyplot as plt
-import matplotlib.image as mpimg
+
+from utils import visualize_episode, save_q_table, visualize_heatmap
+
 
 edges = [
     (1, 2), (2, 3), (3, 4), (4, 1), (2, 4), (2, 5), (3, 6), (5, 6),
@@ -31,6 +30,7 @@ weights = {
 class TaxiEnvironment:
     def __init__(self, city_graph):
         self.city = city_graph
+        self.edge_usage = {edge: 0 for edge in self.city.edges} # for heatmap
         self.reset()
 
     def reset(self):
@@ -40,19 +40,20 @@ class TaxiEnvironment:
 
     def step(self, action):
         if action in self.city[self.taxi_position]:
+            self.edge_usage[tuple(sorted([self.taxi_position, action]))] += 1 # for heatmap
             edge_weight = self.city[self.taxi_position][action]['weight']
             self.taxi_position = action
         else:
-            return (self.taxi_position, self.passenger_status), -10, False  # Invalid action
+            return (self.taxi_position, self.passenger_status), -10, False  # invalid action
 
-        reward = -edge_weight  # Movement costs energy proportional to weight
+        reward = -edge_weight  # movement costs energy proportional to weight
         done = False
 
         if self.passenger_status == 'no_passenger' and self.taxi_position == self.passenger_start:
             self.passenger_status = 'has_passenger'
-            reward += 10  # Reward for picking up passenger
+            reward += 10  # reward for picking up passenger
         elif self.passenger_status == 'has_passenger' and self.taxi_position == self.passenger_destination:
-            reward += 20  # Reward for successful delivery
+            reward += 20  # reward for successful delivery
             done = True
 
         return (self.taxi_position, self.passenger_status), reward, done
@@ -121,61 +122,6 @@ for episode in range(episodes):
         total_reward += reward
 
 
-#### Helper Functions ####
-def visualize_episode_with_passenger_information(env, agent, city, positions):
-    state = env.reset()
-    env.taxi_position = 12
-    positions_trace = [env.taxi_position]
-    passenger_start = env.passenger_start
-    passenger_destination = env.passenger_destination
-
-    done = False
-    while not done:
-        action = agent.choose_action(state)
-        next_state, _, done = env.step(action)
-        positions_trace.append(env.taxi_position)
-        state = next_state
-    
-    print(f"path: {positions_trace}")
-
-    fig, ax = plt.subplots(figsize=(8, 8))
-    def update(num):
-        ax.clear()        
-        nx.draw(city, pos=positions, with_labels=True, node_color='lightblue', node_size=800, ax=ax)        
-        nx.draw_networkx_nodes(city, pos=positions, nodelist=[passenger_start], node_color='green', node_size=1000, ax=ax)        
-        nx.draw_networkx_nodes(city, pos=positions, nodelist=[passenger_destination], node_color='red', node_size=1000, ax=ax)        
-        nx.draw_networkx_nodes(city, pos=positions, nodelist=[positions_trace[num]], node_color='yellow', node_size=1000, ax=ax)
-        edge_labels = nx.get_edge_attributes(city, 'weight')
-        nx.draw_networkx_edge_labels(city, pos=positions, edge_labels=edge_labels)
-        # legend for colors
-        labels = ["Passanger-Start", "Passenger-Destination", "Taxi"]
-        colors = ["green", "red", "yellow"]
-        for color in colors:
-            plt.scatter([], [], color=color, label=labels[colors.index(color)])
-        plt.legend(loc="upper left")
-                
-        def add_image(ax, img_path, position):
-            img = mpimg.imread(img_path)
-            imagebox = OffsetImage(img, zoom=0.3)  # Adjust `zoom` as needed
-            ab = AnnotationBbox(imagebox, position, frameon=False)
-            ax.add_artist(ab)
-        
-        add_image(ax, "taxi.png", positions[positions_trace[num]])
-        add_image(ax, "passenger.png", positions[passenger_start])
-        add_image(ax, "flag.png", positions[passenger_destination])
-    
-    time.sleep(1)
-    ani = animation.FuncAnimation(fig, update, frames=len(positions_trace), interval=1000, repeat=False)
-    plt.show()
-
-    
-def save_q_table(agent):
-    with open('qtable.txt', 'w') as file:
-        for entry in agent.q_table:
-            formatted_values = {action: f"{value:.2f}" for action, value in agent.q_table[entry].items()}
-            # Schreibe den State und die formatierten Q-Werte in die Datei
-            file.write(f"{entry}: {formatted_values}\n")
-
-
+visualize_episode(env, agent, city, positions)
+visualize_heatmap(city, env.edge_usage, positions)
 save_q_table(agent)
-visualize_episode_with_passenger_information(env, agent, city, positions)
