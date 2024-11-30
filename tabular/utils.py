@@ -1,5 +1,4 @@
 import networkx as nx
-import time
 import matplotlib.pyplot as plt
 import matplotlib.image as mpimg
 import matplotlib.animation as animation
@@ -15,86 +14,94 @@ def save_q_table(agent):
                 for action, value in agent.q_table[entry].items()
             }
             file.write(f"{entry}: {formatted_values}\n")
+            
 
-
-def visualize_episode(env, agent, city, positions):
-    state = env.reset()
-    env.taxi_position = 12
-    positions_trace = [env.taxi_position]
-    passenger_start = env.passenger_start
-    passenger_destination = env.passenger_destination
-
-    done = False
-    while not done:
-        action = agent.choose_action(state)
-        next_state, _, done = env.step(action)
-        positions_trace.append(env.taxi_position)
-        state = next_state
-
-    print(f"path: {positions_trace}")
-
-    fig, ax = plt.subplots(figsize=(8, 8))
-
-    def update(num):
-        ax.clear()
-        nx.draw(
-            city,
-            pos=positions,
-            with_labels=True,
-            node_color="lightblue",
-            node_size=800,
-            ax=ax,
-        )
-        nx.draw_networkx_nodes(
-            city,
-            pos=positions,
-            nodelist=[passenger_start],
-            node_color="green",
-            node_size=1000,
-            ax=ax,
-        )
-        nx.draw_networkx_nodes(
-            city,
-            pos=positions,
-            nodelist=[passenger_destination],
-            node_color="red",
-            node_size=1000,
-            ax=ax,
-        )
-        nx.draw_networkx_nodes(
-            city,
-            pos=positions,
-            nodelist=[positions_trace[num]],
-            node_color="yellow",
-            node_size=1000,
-            ax=ax,
-        )
-        edge_labels = nx.get_edge_attributes(city, "weight")
-        nx.draw_networkx_edge_labels(
-            city, pos=positions, edge_labels=edge_labels
-        )
-        # legend for colors
-        # labels = ["Passenger-Start", "Passenger-Destination", "Taxi"]
-        # colors = ["green", "red", "yellow"]
-        # for color in colors:
-        #     plt.scatter([], [], color=color, label=labels[colors.index(color)])
-        # plt.legend(loc="upper left")
-
-        def add_image(ax, img_path, position):
-            img = mpimg.imread(img_path)
-            imagebox = OffsetImage(img, zoom=0.3)  # Adjust `zoom` as needed
-            ab = AnnotationBbox(imagebox, position, frameon=False)
-            ax.add_artist(ab)
-
-        add_image(ax, "assets/taxi.png", positions[positions_trace[num]])
-        add_image(ax, "assets/passenger.png", positions[passenger_start])
-        add_image(ax, "assets/flag.png", positions[passenger_destination])
-
-    time.sleep(1)
-    ani = animation.FuncAnimation(
-        fig, update, frames=len(positions_trace), interval=1000, repeat=False
-    )
+def visualize_city(city, positions):
+    edge_labels = nx.get_edge_attributes(city, 'weight')
+    plt.figure(figsize=(8, 8))
+    nx.draw(city, pos=positions, with_labels=True, node_color='lightblue', node_size=800)
+    nx.draw_networkx_edge_labels(city, pos=positions, edge_labels=edge_labels)
+    plt.title("City Graph")
     plt.show()
+    
+    
+def visualize_episode(ax, city, positions, env, positions_trace):
+    ax.clear()
+    nx.draw(
+        city, pos=positions, with_labels=True,
+        node_color="lightblue", node_size=800, ax=ax
+    )
+    passenger_color = "lightgreen" if env.passenger_status == "has_passenger" else "green"
+    nx.draw_networkx_nodes(
+        city, pos=positions, nodelist=[env.passenger_start],
+        node_color=passenger_color, node_size=1000, ax=ax
+    )
+    nx.draw_networkx_nodes(
+        city, pos=positions, nodelist=[env.passenger_destination],
+        node_color="red", node_size=1000, ax=ax
+    )
+    path_edges = [
+        (positions_trace[i], positions_trace[i + 1])
+        for i in range(len(positions_trace) - 1)
+    ]
+    nx.draw_networkx_edges(
+        city, pos=positions, edgelist=path_edges,
+        edge_color="yellow", width=2.5, ax=ax
+    )
+    nx.draw_networkx_nodes(
+        city, pos=positions, nodelist=[env.taxi_position],
+        node_color="yellow", node_size=1000, ax=ax
+    )
+    edge_labels = nx.get_edge_attributes(city, "weight")
+    nx.draw_networkx_edge_labels(city, pos=positions, edge_labels=edge_labels)
+    labels = ["Passenger is waiting", "Passenger is picked up", "Destination", "Taxi"]
+    colors = ["green", "lightgreen", "red", "yellow"]
+    for color in colors:
+        plt.scatter([], [], color=color, label=labels[colors.index(color)])
+    plt.legend(loc="upper left")
+
+
+def visualize_episode_with_imgs(ax, city, positions, env, positions_trace):
+    ax.clear()
+    nx.draw(
+        city, pos=positions, with_labels=True,
+        node_color="lightblue", node_size=800, ax=ax
+    )
+    passenger_color = "lightgreen" if env.passenger_status == "has_passenger" else "green"
+    nx.draw_networkx_nodes(
+        city, pos=positions, nodelist=[env.passenger_start],
+        node_color=passenger_color, node_size=1000, ax=ax
+    )
+    nx.draw_networkx_nodes(
+        city, pos=positions, nodelist=[env.passenger_destination],
+        node_color="red", node_size=1000, ax=ax
+    )
+    path_edges = [
+        (positions_trace[i], positions_trace[i + 1])
+        for i in range(len(positions_trace) - 1)
+    ]
+    nx.draw_networkx_edges(
+        city, pos=positions, edgelist=path_edges,
+        edge_color="yellow", width=2.5, ax=ax
+    )
+    nx.draw_networkx_nodes(
+        city, pos=positions, nodelist=[env.taxi_position],
+        node_color="yellow", node_size=1000, ax=ax
+    )
+    edge_labels = nx.get_edge_attributes(city, "weight")
+    nx.draw_networkx_edge_labels(city, pos=positions, edge_labels=edge_labels)
+
+    def add_image(ax, img_path, position):
+        img = mpimg.imread(img_path)
+        imagebox = OffsetImage(img, zoom=0.25)  # Adjust `zoom` as needed
+        ab = AnnotationBbox(imagebox, position, frameon=False)
+        ax.add_artist(ab)
+
+    add_image(ax, "assets/flag.png", positions[env.passenger_destination])
+    if env.passenger_status == "has_passenger":
+        add_image(ax, "assets/passenger.png", positions[env.taxi_position])
+    else: add_image(ax, "assets/passenger.png", positions[env.passenger_start])
+    add_image(ax, "assets/taxi.png", positions[env.taxi_position])
 
 
 def visualize_heatmap(city, edge_usage, positions):
