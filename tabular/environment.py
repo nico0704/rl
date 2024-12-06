@@ -13,6 +13,9 @@ class TaxiEnvironment:
         self.passenger_status = 'no_passenger'
         self.passenger_start = random.choice(list(self.city.nodes))
         self.passenger_destination = random.choice(list(self.city.nodes))
+        while self.passenger_start == self.passenger_destination:
+            self.passenger_start = random.choice(list(self.city.nodes))
+            self.passenger_destination = random.choice(list(self.city.nodes))
         return (self.taxi_position, self.passenger_status, self.passenger_start, self.passenger_destination)
 
     def step(self, action):
