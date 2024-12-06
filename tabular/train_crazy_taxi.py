@@ -12,10 +12,10 @@ from utils import (
 
 
 EPISODES = 100000
-VISU_EPISODE = 1000
-SAVE_Q_TABLE = True
+VISU_EPISODE = EPISODES / 10 # visualize 10 episodes
+VISUALIZE_TRAINING = True
+SAVE_Q_TABLE = False
 SAVE_Q_TABLE_PATH = f"q_tables/qt_{EPISODES}.txt"
-VISUALIZE_TRAINING = False
 PLOT = False
 
 
@@ -36,7 +36,7 @@ def train():
     cumulative_reward = 0
 
     # training
-    for episode in range(EPISODES):
+    for episode in range(1, EPISODES):
         state = env.reset()
         total_reward = 0
         done = False
