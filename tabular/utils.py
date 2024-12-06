@@ -1,10 +1,36 @@
 import networkx as nx
 import matplotlib.pyplot as plt
 import matplotlib.image as mpimg
-import matplotlib.animation as animation
 from matplotlib.colors import LinearSegmentedColormap
 from matplotlib.offsetbox import OffsetImage, AnnotationBbox
 import os
+
+
+#### city graph ####
+def create_city_graph():
+    edges = [
+        (1, 2), (2, 3), (3, 4), (4, 1), (2, 4), (2, 5), (3, 6), (5, 6),
+        (1, 7), (7, 8), (8, 5), (6, 9), (9, 10), (10, 4),
+        (7, 11), (11, 12), (12, 8), (9, 13), (13, 14), (14, 10)
+    ]
+
+    positions = {
+        1: (0, 0), 2: (1, 0), 3: (1, 1), 4: (0, 1), 5: (2, 0), 6: (2, 1),
+        7: (-1, 0), 8: (2, -1), 9: (3, 1), 10: (0, 2),
+        11: (-2, 0), 12: (-1, -1), 13: (3, 2), 14: (1, 2)
+    }
+
+    weights = {
+        (1, 2): 1, (2, 3): 2, (3, 4): 3, (4, 1): 1, (2, 4): 2, (2, 5): 4,
+        (3, 6): 5, (5, 6): 6, (1, 7): 3, (7, 8): 1, (8, 5): 4, (6, 9): 3,
+        (9, 10): 1, (10, 4): 2, (7, 11): 4, (11, 12): 3, (12, 8): 2,
+        (9, 13): 3, (13, 14): 4, (14, 10): 1
+    }
+
+    city = nx.Graph()
+    city.add_edges_from(edges)
+    nx.set_edge_attributes(city, weights, 'weight')
+    return city, positions
 
 
 def plot_rewards(total_rewards, cumulative_rewards):
@@ -30,16 +56,6 @@ def plot_rewards(total_rewards, cumulative_rewards):
     plt.grid()
     plt.show()
     plt.savefig("plots/cumulative_reward_plot.png")
-
-
-def save_q_table(agent):
-    with open("qtable.txt", "w") as file:
-        for entry in agent.q_table:
-            formatted_values = {
-                action: f"{value:.2f}"
-                for action, value in agent.q_table[entry].items()
-            }
-            file.write(f"{entry}: {formatted_values}\n")
             
 
 def visualize_city(city, positions):
