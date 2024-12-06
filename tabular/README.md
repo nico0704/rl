@@ -27,6 +27,8 @@ python run_crazy_taxi.py
 ```
 
 #### Results
+![crazy taxi](assets/crazy_taxi.gif)
+
 This is one example result for the first mini-project
 <div>
     <img src="/tabular/plots/cumulative_reward_plot.png" alt="First Result" width="350">
