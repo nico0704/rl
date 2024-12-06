@@ -49,7 +49,9 @@ class TaxiEnvironment:
     def reset(self):
         self.taxi_position = random.choice(list(self.city.nodes))
         self.passenger_status = 'no_passenger'
-        return (self.taxi_position, self.passenger_status)
+        self.passenger_start = random.choice(list(self.city.nodes))
+        self.passenger_destination = random.choice(list(self.city.nodes))
+        return (self.taxi_position, self.passenger_status, self.passenger_start, self.passenger_destination)
 
     def step(self, action):
         if action in self.city[self.taxi_position]:
@@ -57,7 +59,7 @@ class TaxiEnvironment:
             edge_weight = self.city[self.taxi_position][action]['weight']
             self.taxi_position = action
         else:
-            return (self.taxi_position, self.passenger_status), -10, False  # Invalid action penalty
+            return (self.taxi_position, self.passenger_status, self.passenger_start, self.passenger_destination), -10, False  # Invalid action penalty
 
         reward = -edge_weight  # Movement cost
         done = False
@@ -69,7 +71,7 @@ class TaxiEnvironment:
             reward += 20  # Reward for successful delivery
             done = True
 
-        return (self.taxi_position, self.passenger_status), reward, done
+        return (self.taxi_position, self.passenger_status, self.passenger_start, self.passenger_destination), reward, done
 
 
 #### agent ####
@@ -84,15 +86,20 @@ class QLearningAgent:
     def _initialize_q_table(self, env):
         q_table = {}
         for node in env.city.nodes:
-            for status in ['no_passenger', 'has_passenger']:
-                state = (node, status)
-                q_table[state] = {neighbor: 0 for neighbor in env.city[node]}
+            for start in env.city.nodes:
+                for dest in env.city.nodes:
+                    for status in ['no_passenger', 'has_passenger']:
+                        state = (node, status, start, dest)
+                        q_table[state] = {neighbor: 0 for neighbor in env.city[node]}
         return q_table
 
     def choose_action(self, state):
         # Epsilon-Greedy Strategy
         if random.random() < self.epsilon:
             return random.choice(list(self.q_table[state].keys()))
+        return max(self.q_table[state], key=self.q_table[state].get)
+
+    def choose_action_deploy(self, state):
         return max(self.q_table[state], key=self.q_table[state].get)
 
     def update_q_value(self, state, action, reward, next_state):
@@ -104,13 +111,11 @@ class QLearningAgent:
 
 def main():
     city, positions = create_city_graph()
-    visualize_city(city, positions)
+    # visualize_city(city, positions)
 
     # initialize environment and agent
     env = TaxiEnvironment(city)
     agent = QLearningAgent(env)
-    env.passenger_start = 10
-    env.passenger_destination = 8
     
     # visu setup
     fig, ax = plt.subplots(figsize=(8, 8))
@@ -121,7 +126,7 @@ def main():
     cumulative_reward = 0
 
     # training
-    episodes = 1000
+    episodes = 10000000
     for episode in range(episodes):
         state = env.reset()
         total_reward = 0
@@ -131,12 +136,12 @@ def main():
             action = agent.choose_action(state)
             next_state, reward, done = env.step(action)
 
-            if reward != -10 and episode % 25 == 0:
-                positions_trace.append(env.taxi_position)
-                # visualize_episode(ax, city, positions, env, positions_trace)
-                visualize_episode_with_imgs(ax, city, positions, env, positions_trace)
-                ax.set_title(f"Training Progress: Episode {episode}")
-                plt.pause(0.25)
+            # if episode == 2000000-1:
+            #     positions_trace.append(env.taxi_position)
+            #     # visualize_episode(ax, city, positions, env, positions_trace)
+            #     visualize_episode_with_imgs(ax, city, positions, env, positions_trace)
+            #     ax.set_title(f"Training Progress: Episode {episode}")
+            #     plt.pause(0.25)
 
             agent.update_q_value(state, action, reward, next_state)
             state = next_state
@@ -153,6 +158,25 @@ def main():
     plot_rewards(total_rewards, cumulative_rewards)
     # save q table
     save_q_table(agent)
+    
+    import time
+    time.sleep(1)
+    
+    fig, ax = plt.subplots(figsize=(8, 8))
+    
+    for _ in range(10):
+        # deploy
+        state = env.reset()
+        total_reward = 0
+        done = False
+        positions_trace = []
+        while not done:
+            action = agent.choose_action_deploy(state)
+            next_state, reward, done = env.step(action)
+            positions_trace.append(env.taxi_position)
+            visualize_episode_with_imgs(ax, city, positions, env, positions_trace)
+            plt.pause(0.5)
+            state = next_state
 
 
 if __name__ == "__main__":

@@ -17,8 +17,8 @@ def plot_rewards(total_rewards, cumulative_rewards):
     plt.title("Total Reward per Episode")
     plt.legend()
     plt.grid()
-    plt.savefig("plots/total_reward_plot.png")
     plt.show()
+    plt.savefig("plots/total_reward_plot.png")
 
     # Cumulative rewards
     plt.figure(figsize=(12, 6))
@@ -28,8 +28,8 @@ def plot_rewards(total_rewards, cumulative_rewards):
     plt.title("Cumulative Reward Over Episodes")
     plt.legend()
     plt.grid()
-    plt.savefig("plots/cumulative_reward_plot.png")
     plt.show()
+    plt.savefig("plots/cumulative_reward_plot.png")
 
 
 def save_q_table(agent):
@@ -169,4 +169,5 @@ def visualize_heatmap(city, edge_usage, positions):
     cbar.set_label("Edge usage", rotation=270, labelpad=20)
 
     plt.title("Heatmap for edge usage")
+    plt.savefig("plots/heatmap.png")
     plt.show()
