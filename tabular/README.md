@@ -10,7 +10,7 @@ pip install -r requirements.txt
 
 #### Configuration:
 - `EPISODES`: The number of episodes to train the agent. Default: 100000
-- `VISU_EPISODE`: The interval at which training progress is visualized (if visualization is enabled). Default: 1000
+- `VISU_EPISODE`: The interval at which training progress is visualized (if visualization is enabled). Default: EPISODES / 10
 - `SAVE_Q_TABLE`: Whether to save the Q-Table after training. Default: True
 - `SAVE_Q_TABLE_PATH`: The path to save the Q-Table. Default: q_tables/qt_{EPISODES}.txt
 - `VISUALIZE_TRAINING`: Enable/disable visualization of the training process. Default: False
@@ -22,11 +22,10 @@ python train_crazy_taxi.py
 
 ### Run
 #### Configuration:
-- `Q_TABLE_PATH`: The path to the pre-trained Q-Table used for running the simulation. Default: q_tables/qt_10000000.txt
+- `Q_TABLE_PATH`: The path to the pre-trained Q-Table used for running the simulation. Default: q_tables/qt_100000.txt
 - `ITERATIONS`: The number of iterations the simulation will run. Default: 10
 
 ```bash
-cd tabular
 python run_crazy_taxi.py
 ```
 
@@ -35,7 +34,7 @@ python run_crazy_taxi.py
 
 This is one example result for the first mini-project
 <div>
-    <img src="/tabular/plots/cumulative_reward_plot.png" alt="First Result" width="350">
-    <img src="/tabular/plots/total_reward_plot.png" alt="First Result" width="350">
+    <img src="/tabular/plots/cumulative_reward_plot.png" alt="First Result" width="500">
+    <img src="/tabular/plots/total_reward_plot.png" alt="First Result" width="500">
 </div>
 To see some more results run the code. There are some more visualizations included.
