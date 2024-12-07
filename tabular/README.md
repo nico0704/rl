@@ -30,7 +30,7 @@ python run_crazy_taxi.py
 ```
 
 #### Results
-![crazy taxi](assets/crazy_taxi.gif)
+![crazy taxi](assets/visu.gif)
 
 This is one example result for the first mini-project
 <div>
