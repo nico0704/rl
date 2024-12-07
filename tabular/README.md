@@ -1,6 +1,11 @@
 # Mini-Project Tabular - Crazy Taxi
 This project is the first mini-project for the reinforcement learning course. It simulates a taxi-driving-system. The taxi drivers goal is to get a passenger and deliver him/her to his/hers destination. It's realised as a graph problem, so the goal is to find the shortest path. To find the shortest path we used Q-Learning. 
 
+### Setup
+```bash
+pip install -r requirements.txt
+```
+
 ### Train
 
 #### Configuration:
@@ -12,7 +17,6 @@ This project is the first mini-project for the reinforcement learning course. It
 - `PLOT`: Enable/disable plotting of training metrics. Default: False
 
 ```bash
-cd tabular
 python train_crazy_taxi.py
 ```
 

@@ -8,7 +8,7 @@ from utils import (
 )
 
 
-Q_TABLE_PATH = "q_tables/qt_100000.txt"
+Q_TABLE_PATH = "q_tables/qt_10000000.txt"
 ITERATIONS = 10
 
 
