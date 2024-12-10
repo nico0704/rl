@@ -40,9 +40,8 @@ This is one example result for the first mini-project
 To see some more results run the code. There are some more visualizations included.
 
 #### Mathematical Concept
-```math
-Q(s,a)=r(s,a)+\gamma \mathbb{E}[V^*(S_t)] 
-```
+
+`Q(s,a)= r(s,a) + γ 𝔼[V*(Sₜ)]` 
 
 ```python
 def update_q_value(self, state, action, reward, next_state):
@@ -51,12 +50,13 @@ def update_q_value(self, state, action, reward, next_state):
         reward + self.gamma * max_future_q - self.q_table[state][action]
 )
 ```
-$Q(s,a) \to $ ``` self.q_table[state][action] ``` is the q-table-value that gets updated
-$r(s,a) \to $ ``` reward ``` is the reward based on the action of the current state
-$\gamma \to $ ``` self.gamma ``` is the discount-factor 
-$ V^*(S_t) \to$ ```max_future_q``` is the maximal value from the q-table based on next-state 
-$\mathbb{E}$ is in our case always 1 because of our deterministic environment  
 
-```self.alpha``` is the learning-rate that ensures that the policy is slowly converging to its optimal value
+`Q(s,a)` → `self.q_table[state][action]` is the q-table-value that gets updated
+`r(s,a) ` → ` reward ` is the reward based on the action of the current state
+` γ ` → ` self.gamma ` is the discount-factor 
+` V*(Sₜ) ` → `max_future_q` is the maximal value from the q-table based on next-state 
+`𝔼` is in our case always 1 because of our deterministic environment  
 
-The subtraction of ```self.q_table[state][action]``` measures how the current value and the new value differ from each other. It is called the Temporal Difference Error (TDE). The TDE determines the extent to which the Q-table value is adjusted.
+`self.alpha` is the learning-rate that ensures that the policy is slowly converging to its optimal value
+
+The subtraction of `self.q_table[state][action]` measures how the current value and the new value differ from each other. It is called the Temporal Difference Error (TDE). The TDE determines the extent to which the Q-table value is adjusted.
