@@ -7,6 +7,6 @@ python gridExample.py
 ```
 
 <div>
-    <img src="assests/qLearning.png" alt="Q-Learning" width="500">
+    <img src="assets/qLearning.png" alt="Q-Learning" width="500">
 </div>
 Q-learning algorithm and enviorment
