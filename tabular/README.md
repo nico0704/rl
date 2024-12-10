@@ -57,6 +57,6 @@ def update_q_value(self, state, action, reward, next_state):
 - ` V*(Sₜ) ` → `max_future_q` is the maximal value from the q-table based on next-state 
 - `𝔼` is in our case always 1 because of our deterministic environment  
 
-`self.alpha` is the learning-rate that ensures that the policy is slowly converging to its optimal value
+- `self.alpha` is the learning-rate that ensures that the policy is slowly converging to its optimal value
 
-The subtraction of `self.q_table[state][action]` measures how the current value and the new value differ from each other. It is called the Temporal Difference Error (TDE). The TDE determines the extent to which the Q-table value is adjusted.
+- The subtraction of `self.q_table[state][action]` measures how the current value and the new value differ from each other. It is called the Temporal Difference Error (TDE). The TDE determines the extent to which the Q-table value is adjusted.
