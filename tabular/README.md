@@ -40,9 +40,11 @@ This is one example result for the first mini-project
 To see some more results run the code. There are some more visualizations included.
 
 #### Mathematical Concept
-$ Q(s,a)=r(s,a)+\gamma \mathbb{E}[V^*(S_t)] $
+```math
+Q(s,a)=r(s,a)+\gamma \mathbb{E}[V^*(S_t)] 
+```
 
-```bash
+```python
 def update_q_value(self, state, action, reward, next_state):
     max_future_q = max(self.q_table[next_state].values())
     self.q_table[state][action] += self.alpha * (
