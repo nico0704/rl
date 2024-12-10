@@ -51,11 +51,11 @@ def update_q_value(self, state, action, reward, next_state):
 )
 ```
 
-`Q(s,a)` → `self.q_table[state][action]` is the q-table-value that gets updated
-`r(s,a) ` → ` reward ` is the reward based on the action of the current state
-` γ ` → ` self.gamma ` is the discount-factor 
-` V*(Sₜ) ` → `max_future_q` is the maximal value from the q-table based on next-state 
-`𝔼` is in our case always 1 because of our deterministic environment  
+- `Q(s,a)` → `self.q_table[state][action]` is the q-table-value that gets updated 
+- `r(s,a) ` → ` reward ` is the reward based on the action of the current state
+- ` γ ` → ` self.gamma ` is the discount-factor 
+- ` V*(Sₜ) ` → `max_future_q` is the maximal value from the q-table based on next-state 
+- `𝔼` is in our case always 1 because of our deterministic environment  
 
 `self.alpha` is the learning-rate that ensures that the policy is slowly converging to its optimal value
 
