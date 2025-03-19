@@ -2,9 +2,9 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 from torch.distributions import MultivariateNormal
-import numpy as np
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
 
 class RolloutBuffer:
     def __init__(self):
@@ -12,7 +12,6 @@ class RolloutBuffer:
         self.logprobs, self.dones, self.values = [], [], []
 
     def clear(self):
-        """ Clears buffer after each update. """
         self.states, self.actions, self.rewards = [], [], []
         self.logprobs, self.dones, self.values = [], [], []
 
@@ -35,7 +34,7 @@ class ActorCritic(nn.Module):
 
     def forward(self, state):
         shared_features = self.shared(state)
-        action_mean = torch.tanh(self.actor(shared_features))  # Output in range [-1, 1]
+        action_mean = torch.tanh(self.actor(shared_features))  # output in range [-1, 1]
         state_value = self.critic(shared_features)
         return action_mean, state_value
 
