@@ -2,7 +2,7 @@ from race_car_env import RaceCarEnv
 import numpy as np
 
 # intialize enironment
-env = RaceCarEnv("circle.txt")
+env = RaceCarEnv()
 
 # reset environment
 state = env.reset()

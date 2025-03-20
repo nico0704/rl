@@ -2,10 +2,11 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 from torch.distributions import MultivariateNormal
+import time 
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-
+# speichert gesammelte Episoden-Daten
 class RolloutBuffer:
     def __init__(self):
         self.states, self.actions, self.rewards = [], [], []
@@ -15,11 +16,12 @@ class RolloutBuffer:
         self.states, self.actions, self.rewards = [], [], []
         self.logprobs, self.dones, self.values = [], [], []
 
-
+# neuronales Netz mit gemeindem Basis und separaten Policy (Actor)- und Value (Critic)-Netzen
 class ActorCritic(nn.Module):
     def __init__(self, state_dim, action_dim):
         super(ActorCritic, self).__init__()
 
+        # gemeinsame feature-extractor
         self.shared = nn.Sequential(
             nn.Linear(state_dim, 64),
             nn.ReLU(),
@@ -27,29 +29,30 @@ class ActorCritic(nn.Module):
             nn.ReLU(),
         )
 
-        # actor (Policy)
+        # actor (Policy) 
         self.actor = nn.Linear(64, action_dim)
         # critic (Value Function)
         self.critic = nn.Linear(64, 1)
 
+    # berechnet policy & state-value
     def forward(self, state):
         shared_features = self.shared(state)
-        action_mean = torch.tanh(self.actor(shared_features))  # output in range [-1, 1]
-        state_value = self.critic(shared_features)
+        action_mean = torch.tanh(self.actor(shared_features))  # output in range [-1, 1] -> gibt aktion zurück
+        state_value = self.critic(shared_features) # gibt geschätzten Wert des Zustands
         return action_mean, state_value
 
     def act(self, state):
         action_mean, state_value = self.forward(state)
         dist = MultivariateNormal(action_mean, torch.diag(torch.ones_like(action_mean) * 0.1))
-        action = dist.sample()
-        return action.detach(), dist.log_prob(action).detach(), state_value.detach()
+        action = dist.sample() # action wird zufällig aus Verteilung gesampelt 
+        return action.detach(), dist.log_prob(action).detach(), state_value.detach() # log_prob berechnet logarithmierte Wahrscheinlichkeit der action
 
 
 class PPO:
-    def __init__(self, state_dim, action_dim, lr=3e-4, gamma=0.99, eps_clip=0.2, epochs=10):
-        self.gamma = gamma
-        self.eps_clip = eps_clip
-        self.epochs = epochs
+    def __init__(self, state_dim, action_dim, lr=3e-4, gamma=0.99, eps_clip=0.13, epochs=10):
+        self.gamma = gamma # discount factor (wie sehr zählen zukünftige Belohnungen)
+        self.eps_clip = eps_clip # PPO clipping-faktor (begrenzt policy-updates)
+        self.epochs = epochs 
 
         # initialize networks
         self.policy = ActorCritic(state_dim, action_dim).to(device)
@@ -69,7 +72,7 @@ class PPO:
         return action.cpu().numpy()
 
     def compute_advantages(self, rewards, values, dones):
-        # compute GAE (Generalized Advantage Estimation)
+        # compute GAE (Generalized Advantage Estimation)(GAE um stabiliere Updates zu erhalten)
         advantages, returns = [], []
         adv = 0
         last_value = values[-1]
@@ -128,4 +131,5 @@ class PPO:
                 if done:
                     print(f"Episode {episode}, Reward: {episode_reward}")
                     self.update()
-            env.render()
+                # if episode == 199:
+                env.render()

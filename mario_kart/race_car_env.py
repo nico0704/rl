@@ -5,7 +5,7 @@ from scipy.spatial import KDTree
 
 class RaceCarEnv:
 
-    def __init__(self, track_file, track_width=40, track_radius=300, render_mode="human"):
+    def __init__(self, track_width=40, track_radius=300, render_mode="human"):
         # screen settings
         self.WIDTH, self.HEIGHT = 1000, 1000
         self.track_width = track_width
@@ -21,7 +21,7 @@ class RaceCarEnv:
         self.right_boundary_tree = KDTree(np.column_stack((self.right_x, self.right_y)))
 
         # Generate checkpoints
-        self.num_checkpoints = 10
+        self.num_checkpoints = 50
         self.checkpoints = self.generate_checkpoints()
 
         # car
@@ -54,7 +54,7 @@ class RaceCarEnv:
             self.screen = pygame.display.set_mode((self.WIDTH, self.HEIGHT))
             self.clock = pygame.time.Clock()
 
-    def generate_wavy_loop(self, amplitude=50, frequency=5):
+    def generate_wavy_loop(self, amplitude=50, frequency=3):
         """Generates a closed-loop wavy track."""
         angles = np.linspace(0, 2 * np.pi, self.num_points, endpoint=False)
         np.append(angles, 0.0)
@@ -133,7 +133,7 @@ class RaceCarEnv:
                 self.checkpoints_passed[self.current_checkpoint] = True
                 self.current_checkpoint += 1
                 print(f'CHECKPOINT {self.current_checkpoint} CROSSED!')
-                return 10  # Reward for crossing a checkpoint
+                return self.current_checkpoint  # Reward for crossing a checkpoint
 
         # If all checkpoints are passed, activate finish line
         if self.current_checkpoint == self.num_checkpoints and not self.checkpoints_passed[-1]:
@@ -141,7 +141,7 @@ class RaceCarEnv:
             if self.point_line_distance((car_x, car_y), start, end) < self.car_radius:
                 self.checkpoints_passed[-1] = True
                 print('FINISH LINE CROSSED!')
-                return 50  # Reward for completing the track
+                return 100  # Reward for completing the track
                 
 
         return 0  # No reward if no checkpoint was crossed
@@ -211,35 +211,48 @@ class RaceCarEnv:
         return np.array(left_x), np.array(left_y), np.array(right_x), np.array(right_y)
 
     def step(self, action):
-        throttle, steer = action # [throttle (-1 to 1), steering (-1 to 1)] (throttle = drosseln | steering = lenken)
+        throttle, steer = action  # [throttle (-1 bis 1), lenken (-1 bis 1)]
 
-        # update speed
-        #self.car_speed = 5 # for testing
+        # Geschwindigkeit aktualisieren
         self.car_speed += throttle * self.ACCELERATION
         self.car_speed = np.clip(self.car_speed, -self.MAX_SPEED, self.MAX_SPEED)
 
-        # update orientation
+        # Richtung aktualisieren
         self.car_angle += steer * self.TURN_SPEED
 
-        # move car
+        # Auto bewegen
         dx = np.cos(np.radians(self.car_angle)) * self.car_speed
         dy = np.sin(np.radians(self.car_angle)) * self.car_speed
         self.car_position += np.array([dx, dy])
 
-        # sensor readings
+        # Sensorwerte aktualisieren
         self.sensor_data = self.get_sensor_readings()
 
-        # Check for checkpoints
-        reward = self.check_checkpoint_crossed()
+        # **Checkpoints belohnen (Belohnung zwischen 0 und 1 normalisieren)**
+        checkpoint_reward = self.check_checkpoint_crossed()
+        checkpoint_reward = checkpoint_reward / 100.0  # Maximal 1.0 für Ziellinie
 
-        # Check if car is off track
-        done = not self.is_on_track()
-        if done:
-            reward -= 10 if done else 0.01
+         # **Geschwindigkeitsbelohnung normalisieren**
+        if self.car_speed > 0:
+            speed_reward = (self.car_speed / self.MAX_SPEED) * 0.8  # Vorwärts max 0.8 Belohnung
+        elif self.car_speed < 0:
+            speed_reward = (self.car_speed / self.MAX_SPEED) * 0.5  # Rückwärts max -0.3 Strafe
+        else:
+            speed_reward = -1.0  # Stillstand wird stärker bestraft
 
-        # return state, reward and done flag
+        # **Strafe für das Verlassen der Strecke**
+        off_track = not self.is_on_track()
+        track_penalty = -1.0 if off_track else 0.0  # Harte Strafe für das Verlassen der Strecke
+
+        # **Finaler Reward: Kombiniere alle Belohnungen**
+        reward = checkpoint_reward + speed_reward + track_penalty
+
+        # **Falls das Auto von der Strecke ist, Episode beenden**
+        done = off_track or checkpoint_reward >= 1.0  # Episode endet, wenn das Auto ins Ziel kommt oder off-track ist
+
+        # **Status zurückgeben**
         return np.hstack(([self.car_speed], [self.car_angle / 180], self.sensor_data)), reward, done
-    
+
     def line_intersection(self, p1, p2, p3, p4):
         """Returns the intersection point of two line segments (p1, p2) and (p3, p4), or None if no intersection."""
         x1, y1 = p1
@@ -384,6 +397,12 @@ class RaceCarEnv:
         self.car_position = np.array([self.center_x[0], self.center_y[0]], dtype=np.float32)
         self.car_speed = 0
         self.car_angle = -90
+
+        self.num_checkpoints = 50
+        self.checkpoints = self.generate_checkpoints()
+
+        self.current_checkpoint = 0  # Start at the first checkpoint
+        self.checkpoints_passed = [False] * (self.num_checkpoints + 1)  # Extra for finish line
         return np.hstack(([self.car_speed], [self.car_angle / 180], self.get_sensor_readings()))
 
     def close(self):
