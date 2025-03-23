@@ -5,7 +5,7 @@ from scipy.spatial import KDTree
 
 class RaceCarEnv:
 
-    def __init__(self, track_width=40, track_radius=300, render_mode="human"):
+    def __init__(self, track_width=80, track_radius=300, render_mode="human"):
         # screen settings
         self.WIDTH, self.HEIGHT = 1000, 1000
         self.track_width = track_width
@@ -21,16 +21,16 @@ class RaceCarEnv:
         self.right_boundary_tree = KDTree(np.column_stack((self.right_x, self.right_y)))
 
         # Generate checkpoints
-        self.num_checkpoints = 50
+        self.num_checkpoints = 80
         self.checkpoints = self.generate_checkpoints()
 
         # car
         self.car_position = np.array([self.center_x[0], self.center_y[0]], dtype=np.float32) #start position
         self.car_radius = 5
-        self.car_angle = -80
+        self.car_angle = -120
         self.car_speed = 0
         self.MAX_SPEED = 5
-        self.ACCELERATION = 0.2 #beschleunigung
+        self.ACCELERATION = 0.5 #beschleunigung
         self.FRICTION = 0.05 #reibung
         self.TURN_SPEED = 3
 
@@ -40,7 +40,7 @@ class RaceCarEnv:
         
         # sensors
         self.sensor_angles = np.linspace(-90, 90, 5, endpoint=True)
-        self.sensor_range = self.track_width / 2
+        self.sensor_range = 100
         self.sensor_data = []
 
         # checkpoint tracking
@@ -54,7 +54,7 @@ class RaceCarEnv:
             self.screen = pygame.display.set_mode((self.WIDTH, self.HEIGHT))
             self.clock = pygame.time.Clock()
 
-    def generate_wavy_loop(self, amplitude=50, frequency=3):
+    def generate_wavy_loop(self, amplitude=40, frequency=6):
         """Generates a closed-loop wavy track."""
         angles = np.linspace(0, 2 * np.pi, self.num_points, endpoint=False)
         np.append(angles, 0.0)
@@ -132,7 +132,7 @@ class RaceCarEnv:
             if self.point_line_distance((car_x, car_y), start, end) < self.car_radius:
                 self.checkpoints_passed[self.current_checkpoint] = True
                 self.current_checkpoint += 1
-                print(f'CHECKPOINT {self.current_checkpoint} CROSSED!')
+                # print(f'CHECKPOINT {self.current_checkpoint} CROSSED!')
                 return self.current_checkpoint  # Reward for crossing a checkpoint
 
         # If all checkpoints are passed, activate finish line
@@ -141,10 +141,10 @@ class RaceCarEnv:
             if self.point_line_distance((car_x, car_y), start, end) < self.car_radius:
                 self.checkpoints_passed[-1] = True
                 print('FINISH LINE CROSSED!')
-                return 100  # Reward for completing the track
+                return 100.0  # Reward for completing the track
                 
 
-        return 0  # No reward if no checkpoint was crossed
+        return 0.0  # No reward if no checkpoint was crossed
     
     def point_line_distance(self, point, line_start, line_end):
         """ Berechnet die minimale Distanz eines Punktes zu einer Linie """
@@ -229,16 +229,16 @@ class RaceCarEnv:
         self.sensor_data = self.get_sensor_readings()
 
         # **Checkpoints belohnen (Belohnung zwischen 0 und 1 normalisieren)**
-        checkpoint_reward = self.check_checkpoint_crossed()
-        checkpoint_reward = checkpoint_reward / 100.0  # Maximal 1.0 für Ziellinie
+        checkpoint_reward = self.check_checkpoint_crossed() / self.num_checkpoints
+        
 
-         # **Geschwindigkeitsbelohnung normalisieren**
+        # **Geschwindigkeitsbelohnung normalisieren**
         if self.car_speed > 0:
-            speed_reward = (self.car_speed / self.MAX_SPEED) * 0.8  # Vorwärts max 0.8 Belohnung
+            speed_reward = (self.car_speed / self.MAX_SPEED) * 0.75  # Vorwärts max 0.8 Belohnung
         elif self.car_speed < 0:
-            speed_reward = (self.car_speed / self.MAX_SPEED) * 0.5  # Rückwärts max -0.3 Strafe
+            speed_reward = (self.car_speed / self.MAX_SPEED) * 0.2  # Rückwärts max -0.3 Strafe
         else:
-            speed_reward = -1.0  # Stillstand wird stärker bestraft
+            speed_reward = -0.5  # Stillstand wird stärker bestraft
 
         # **Strafe für das Verlassen der Strecke**
         off_track = not self.is_on_track()
@@ -248,7 +248,7 @@ class RaceCarEnv:
         reward = checkpoint_reward + speed_reward + track_penalty
 
         # **Falls das Auto von der Strecke ist, Episode beenden**
-        done = off_track or checkpoint_reward >= 1.0  # Episode endet, wenn das Auto ins Ziel kommt oder off-track ist
+        done = off_track  # Episode endet, wenn das Auto ins Ziel kommt oder off-track ist
 
         # **Status zurückgeben**
         return np.hstack(([self.car_speed], [self.car_angle / 180], self.sensor_data)), reward, done
@@ -296,32 +296,38 @@ class RaceCarEnv:
 
             min_dist = self.sensor_range  # Default max sensor range
 
-            # Query nearby boundary points using KD-Tree
-            left_nearest_idx = self.left_boundary_tree.query_ball_point([car_x, car_y], self.sensor_range)
-            right_nearest_idx = self.right_boundary_tree.query_ball_point([car_x, car_y], self.sensor_range)
+            # Query nearby indices from KD-Trees
+            left_nearest_idx = sorted(self.left_boundary_tree.query_ball_point([car_x, car_y], self.sensor_range))
+            right_nearest_idx = sorted(self.right_boundary_tree.query_ball_point([car_x, car_y], self.sensor_range))
 
-            # Get nearby points
-            left_nearby = list(zip(self.left_x[left_nearest_idx], self.left_y[left_nearest_idx]))
-            right_nearby = list(zip(self.right_x[right_nearest_idx], self.right_y[right_nearest_idx]))
-
-            # Combine left and right boundary points
-            boundary_segments = left_nearby + right_nearby
-
-            # Iterate over nearby boundary segments
-            for i in range(len(boundary_segments) - 1):
-                boundary_start = boundary_segments[i]
-                boundary_end = boundary_segments[i + 1]
+            for i in range(len(left_nearest_idx) - 1):
+                idx1 = left_nearest_idx[i]
+                idx2 = left_nearest_idx[i + 1]
+                boundary_start = (self.left_x[idx1], self.left_y[idx1])
+                boundary_end = (self.left_x[idx2], self.left_y[idx2])
 
                 intersection = self.line_intersection(sensor_start, sensor_end, boundary_start, boundary_end)
                 if intersection:
-                    # Compute distance to intersection point
                     dist = np.hypot(intersection[0] - car_x, intersection[1] - car_y)
                     if dist < min_dist:
-                        min_dist = dist  # Update min distance
+                        min_dist = dist
 
-            readings.append(min_dist)  # Store shortest detected boundary distance
+            for i in range(len(right_nearest_idx) - 1):
+                idx1 = right_nearest_idx[i]
+                idx2 = right_nearest_idx[i + 1]
+                boundary_start = (self.right_x[idx1], self.right_y[idx1])
+                boundary_end = (self.right_x[idx2], self.right_y[idx2])
+
+                intersection = self.line_intersection(sensor_start, sensor_end, boundary_start, boundary_end)
+                if intersection:
+                    dist = np.hypot(intersection[0] - car_x, intersection[1] - car_y)
+                    if dist < min_dist:
+                        min_dist = dist
+
+            readings.append(min_dist)
 
         return np.array(readings, dtype=np.float32)
+
 
 
     # checks if car is inside the track boundaries
@@ -396,9 +402,8 @@ class RaceCarEnv:
     def reset(self):
         self.car_position = np.array([self.center_x[0], self.center_y[0]], dtype=np.float32)
         self.car_speed = 0
-        self.car_angle = -90
+        self.car_angle = - 120
 
-        self.num_checkpoints = 50
         self.checkpoints = self.generate_checkpoints()
 
         self.current_checkpoint = 0  # Start at the first checkpoint
