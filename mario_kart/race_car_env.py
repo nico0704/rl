@@ -606,6 +606,17 @@ class RaceCarEnv:
         self.car_position = np.array([self.center_x[0], self.center_y[0]], dtype=np.float32)
         self.car_speed = 0
         
+        # generate track
+        self.center_x, self.center_y = self.generate_wavy_loop(
+            amplitude=np.random.randint(30, 70), 
+            frequency=np.random.randint(2,7)
+        )
+        self.left_x, self.left_y, self.right_x, self.right_y = self.compute_boundaries()
+
+        # Generate KD-Trees for boundary points
+        self.left_boundary_tree = KDTree(np.column_stack((self.left_x, self.left_y)))
+        self.right_boundary_tree = KDTree(np.column_stack((self.right_x, self.right_y)))
+        
         # Get direction from centerline
         dx = self.center_x[0] - self.center_x[1]
         dy = self.center_y[0] - self.center_y[1]
