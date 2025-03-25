@@ -27,7 +27,7 @@ class RaceCarEnv:
         # car
         self.car_position = np.array([self.center_x[0], self.center_y[0]], dtype=np.float32) #start position
         self.car_radius = 5
-        self.car_angle = -120
+        self.car_angle = 120
         self.car_speed = 0
         self.MAX_SPEED = 5
         self.ACCELERATION = 0.5 #beschleunigung
@@ -403,9 +403,22 @@ class RaceCarEnv:
             # red for boundary, green for nothing
             color = (255, 0, 0) if distance != self.sensor_range else (0, 255, 0)
             pygame.draw.line(self.screen, color, self.car_position.astype(int), (int(sensor_x), int(sensor_y)), 2)
+        
+        self.draw_rotated_car()
+        self.draw_speed_bar()
+
+        pygame.display.flip()
+        self.clock.tick(30)
 
 
     # Draw car
+    def draw_rotated_car(self):
+        """Rotates and draws the car image at its current position."""
+        rotated_car = pygame.transform.rotate(self.car_image, -self.car_angle)  # Rotate counterclockwise
+        car_rect = rotated_car.get_rect(center=self.car_position.astype(int))  # Position the image
+        self.screen.blit(rotated_car, car_rect.topleft)  # Draw the car
+
+
     def render_3d(self):
         self.screen.fill((135, 206, 235))  # Sky
 
@@ -550,19 +563,13 @@ class RaceCarEnv:
         pygame.draw.rect(self.screen, fill_color, fill_rect)
 
 
-    def draw_rotated_car(self):
-        """Rotates and draws the car image at its current position."""
-        rotated_car = pygame.transform.rotate(self.car_image, -self.car_angle)  # Rotate counterclockwise
-        car_rect = rotated_car.get_rect(center=self.car_position.astype(int))  # Position the image
-        self.screen.blit(rotated_car, car_rect.topleft)  # Draw the car
-
     def reset(self):
         self.car_position = np.array([self.center_x[0], self.center_y[0]], dtype=np.float32)
         self.car_speed = 0
         
         # Get direction from centerline
-        dx = self.center_x[1] - self.center_x[0]
-        dy = self.center_y[1] - self.center_y[0]
+        dx = self.center_x[0] - self.center_x[1]
+        dy = self.center_y[0] - self.center_y[1]
         self.car_angle = np.degrees(np.arctan2(dy, dx))
 
         self.checkpoints = self.generate_checkpoints()
