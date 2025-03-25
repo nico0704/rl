@@ -91,7 +91,7 @@ def train():
             if time_step % print_freq == 0:
                 print_avg_reward = print_running_reward / print_running_episodes
                 print_avg_reward = round(print_avg_reward, 2)
-                print(f"Episode : {i_episode} \t\t Timestep : {time_step} \t\t Average Reward : {print_avg_reward}")
+                print(f"Episode : {i_episode} \t\t Average Reward : {print_avg_reward}")
                 print_running_reward = 0
                 print_running_episodes = 0
             
