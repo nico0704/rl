@@ -7,7 +7,7 @@ class RaceCarEnv:
 
     def __init__(self, track_width=80, track_radius=300, render_mode="human"):
         # screen settings
-        self.WIDTH, self.HEIGHT = 960, 500
+        self.WIDTH, self.HEIGHT = 1920, 1080
         self.track_width = track_width
         self.track_radius = track_radius
 
@@ -447,26 +447,27 @@ class RaceCarEnv:
         
         # --- Draw all checkpoints in blue (except finish line) ---
         for i, (start, end) in enumerate(self.checkpoints[:-1]):  # Skip last (finish line)
-            def to_camera(p):
-                rel = p - car_pos
-                cam_x = np.dot(rel, right)
-                cam_y = np.dot(rel, forward)
-                return cam_x, cam_y
+            if self.checkpoints_passed[i] == False:
+                def to_camera(p):
+                    rel = p - car_pos
+                    cam_x = np.dot(rel, right)
+                    cam_y = np.dot(rel, forward)
+                    return cam_x, cam_y
 
-            sx, sy = to_camera(np.array(start))
-            ex, ey = to_camera(np.array(end))
+                sx, sy = to_camera(np.array(start))
+                ex, ey = to_camera(np.array(end))
 
-            if sy > 1 and ey > 1:
-                start_proj = (
-                    int(screen_center_x + (sx / sy) * scale_x),
-                    int(horizon_y + scale_y / sy)
-                )
-                end_proj = (
-                    int(screen_center_x + (ex / ey) * scale_x),
-                    int(horizon_y + scale_y / ey)
-                )
+                if sy > 1 and ey > 1:
+                    start_proj = (
+                        int(screen_center_x + (sx / sy) * scale_x),
+                        int(horizon_y + scale_y / sy)
+                    )
+                    end_proj = (
+                        int(screen_center_x + (ex / ey) * scale_x),
+                        int(horizon_y + scale_y / ey)
+                    )
 
-                pygame.draw.line(surface, (0, 162, 250), start_proj, end_proj, 2)
+                    pygame.draw.line(surface, (0, 162, 250), start_proj, end_proj, 2)
 
                 
         self.draw_hud_car(surface)
