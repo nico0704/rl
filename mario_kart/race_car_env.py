@@ -54,7 +54,14 @@ class RaceCarEnv:
             self.screen = pygame.display.set_mode((self.WIDTH, self.HEIGHT))
             self.clock = pygame.time.Clock()
 
-    def generate_wavy_loop(self, amplitude=40, frequency=6):
+        # 3D rendering
+        self.use_3d_view = True  # Toggle this to switch views
+        self.hud_car_image = pygame.image.load("images/3d_car.png")
+        self.hud_car_image = pygame.transform.scale(self.hud_car_image, (600, 600)) 
+        self.triangle_steer = 0
+        self.smoothed_triangle_angle = 0 
+
+    def generate_wavy_loop(self, amplitude=40, frequency=5):
         """Generates a closed-loop wavy track."""
         angles = np.linspace(0, 2 * np.pi, self.num_points, endpoint=False)
         np.append(angles, 0.0)
@@ -220,6 +227,13 @@ class RaceCarEnv:
         # Richtung aktualisieren
         self.car_angle += steer * self.TURN_SPEED
 
+        # for visualization
+        if self.use_3d_view:
+            self.triangle_steer = steer
+            smoothing_rate = 0.05  # lower = slower turning
+            self.smoothed_triangle_angle += smoothing_rate * (self.triangle_steer - self.smoothed_triangle_angle)
+
+
         # Auto bewegen
         dx = np.cos(np.radians(self.car_angle)) * self.car_speed
         dy = np.sin(np.radians(self.car_angle)) * self.car_speed
@@ -329,7 +343,6 @@ class RaceCarEnv:
         return np.array(readings, dtype=np.float32)
 
 
-
     # checks if car is inside the track boundaries
     def is_on_track(self):
         car_x, car_y = self.car_position  
@@ -350,7 +363,12 @@ class RaceCarEnv:
     def render(self):
         if self.render_mode != "human":
             return
-        
+
+        # 3D rendering
+        if self.use_3d_view:
+            self.render_3d()
+            return
+
         self.screen.fill((0, 255, 0)) #green background
 
         # Create a filled track area by combining left and right boundary points
@@ -386,12 +404,151 @@ class RaceCarEnv:
             color = (255, 0, 0) if distance != self.sensor_range else (0, 255, 0)
             pygame.draw.line(self.screen, color, self.car_position.astype(int), (int(sensor_x), int(sensor_y)), 2)
 
-        # Draw car
-        #pygame.draw.circle(self.screen, (0, 0, 255), self.car_position.astype(int), self.car_radius)
-        self.draw_rotated_car()
+
+    # Draw car
+    def render_3d(self):
+        self.screen.fill((135, 206, 235))  # Sky
+
+        car_pos = self.car_position
+        car_angle_rad = np.radians(self.car_angle)
+
+        forward = np.array([np.cos(car_angle_rad), np.sin(car_angle_rad)])
+        right = np.array([np.cos(car_angle_rad + np.pi / 2), np.sin(car_angle_rad + np.pi / 2)])
+
+        # Camera projection parameters
+        num_segments = 300
+        step = 4  # fewer steps between points = denser projection
+        screen_center_x = self.WIDTH // 2
+
+        scale_x = 300
+        scale_y = 6000
+        horizon_y = int(self.HEIGHT * 0.2)
+
+        pygame.draw.rect(self.screen, (50, 200, 50), (0, horizon_y, self.WIDTH, self.HEIGHT - horizon_y))  # Grass
+
+        # Find closest index on centerline
+        closest_idx = np.argmin(np.hypot(self.center_x - car_pos[0], self.center_y - car_pos[1]))
+
+        prev_left = None
+        prev_right = None
+
+        for i in range(num_segments):
+            idx = (closest_idx + i * step) % len(self.left_x)
+
+            left_world = np.array([self.left_x[idx], self.left_y[idx]])
+            right_world = np.array([self.right_x[idx], self.right_y[idx]])
+
+            def to_camera(p):
+                rel = p - car_pos
+                cam_x = np.dot(rel, right)
+                cam_y = np.dot(rel, forward)
+                return cam_x, cam_y
+
+            lx, ly = to_camera(left_world)
+            rx, ry = to_camera(right_world)
+
+            # Clamp near values to avoid division by small y
+            ly = max(ly, 1)
+            ry = max(ry, 1)
+
+            # Project to screen
+            left_proj = (
+                int(screen_center_x + (lx / ly) * scale_x),
+                int(horizon_y + scale_y / ly)
+            )
+            right_proj = (
+                int(screen_center_x + (rx / ry) * scale_x),
+                int(horizon_y + scale_y / ry)
+            )
+
+            if prev_left and prev_right:
+                pygame.draw.polygon(self.screen, (50, 50, 50), [
+                    prev_left, prev_right, right_proj, left_proj
+                ])
+
+            prev_left = left_proj
+            prev_right = right_proj
+
+            self.draw_hud_car()
+            self.draw_speed_bar()
 
         pygame.display.flip()
         self.clock.tick(30)
+
+
+    def draw_hud_car(self):
+        # Triangle size
+        triangle_height = 150
+        triangle_base = 300
+
+        # Screen position
+        center_x = self.WIDTH // 2
+        center_y = self.HEIGHT - 200  # Position above bottom
+
+        # Triangle in local coordinates pointing up (forward)
+        points = np.array([
+            [0, -triangle_height],  # Tip
+            [-triangle_base / 2, 0],  # Bottom left
+            [triangle_base / 2, 0]    # Bottom right
+        ])
+
+        # Convert steering input (-1 to 1) into rotation angle in degrees
+        max_steer_angle = 60  # degrees left/right max
+        steer_angle = np.clip(self.smoothed_triangle_angle, -1.0, 1.0) * max_steer_angle
+
+        # Convert to radians for rotation
+        angle_rad = np.radians(steer_angle)
+
+        # Rotate the triangle based on steering
+        rotation_matrix = np.array([
+            [np.cos(angle_rad), -np.sin(angle_rad)],
+            [np.sin(angle_rad),  np.cos(angle_rad)]
+        ])
+        rotated_points = points @ rotation_matrix.T
+
+        # Translate to bottom-center screen
+        translated_points = rotated_points + np.array([center_x, center_y])
+
+        # Draw the red triangle
+        pygame.draw.polygon(self.screen, (255, 0, 0), translated_points.astype(int))
+
+
+    def draw_speed_bar(self):
+        # Bar dimensions
+        # bar_width = 30
+        # bar_height = 600
+        # bar_x = self.WIDTH - 50
+        # bar_y = self.HEIGHT // 2 - bar_height // 2
+
+        bar_width = 30
+        bar_height = 200
+        bar_x = self.WIDTH - 50
+        bar_y = 700
+
+        # Draw bar background
+        pygame.draw.rect(self.screen, (0, 0, 0), (bar_x, bar_y, bar_width, bar_height))
+
+        # Draw center (zero) line
+        zero_y = bar_y + bar_height // 2
+        pygame.draw.line(self.screen, (255, 255, 255), (bar_x - 5, zero_y), (bar_x + bar_width + 5, zero_y), 2)
+
+        # Normalize speed and calculate fill height
+        normalized_speed = np.clip(self.car_speed / self.MAX_SPEED, -1, 1)
+        fill_height = int(abs(normalized_speed) * (bar_height / 2))
+
+        # Determine fill direction and color
+        if self.car_speed > 0:
+            fill_color = (200, 0, 0)  # green
+            fill_rect = (bar_x, zero_y - fill_height, bar_width, fill_height)
+        elif self.car_speed < 0:
+            fill_color = (0, 100, 255)  # blue
+            fill_rect = (bar_x, zero_y, bar_width, fill_height)
+        else:
+            fill_color = (100, 100, 100)  # neutral gray
+            fill_rect = (bar_x, zero_y, bar_width, 2)
+
+        pygame.draw.rect(self.screen, fill_color, fill_rect)
+
 
     def draw_rotated_car(self):
         """Rotates and draws the car image at its current position."""
@@ -402,7 +559,11 @@ class RaceCarEnv:
     def reset(self):
         self.car_position = np.array([self.center_x[0], self.center_y[0]], dtype=np.float32)
         self.car_speed = 0
-        self.car_angle = - 120
+        
+        # Get direction from centerline
+        dx = self.center_x[1] - self.center_x[0]
+        dy = self.center_y[1] - self.center_y[0]
+        self.car_angle = np.degrees(np.arctan2(dy, dx))
 
         self.checkpoints = self.generate_checkpoints()
 
