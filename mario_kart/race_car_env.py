@@ -33,10 +33,6 @@ class RaceCarEnv:
         self.ACCELERATION = 0.5 #beschleunigung
         self.FRICTION = 0.05 #reibung
         self.TURN_SPEED = 3
-
-        # Load the car image
-        self.car_image = pygame.image.load("images/f1_top_view.png") 
-        self.car_image = pygame.transform.scale(self.car_image, (30, 30)) 
         
         # sensors
         self.sensor_angles = np.linspace(-90, 90, 5, endpoint=True)
@@ -54,11 +50,8 @@ class RaceCarEnv:
             self.screen = pygame.display.set_mode((self.WIDTH, self.HEIGHT))
             self.clock = pygame.time.Clock()
 
-        self.surface_3d = pygame.Surface((960, self.HEIGHT))
-        self.surface_2d = pygame.Surface((960, self.HEIGHT))
         self.triangle_steer = 0
         self.smoothed_triangle_angle = 0
-        self.splitscreen = False
         self.surface_minimap = pygame.Surface((300, 300), pygame.SRCALPHA)  # Transparent surface
 
     def generate_wavy_loop(self, amplitude=40, frequency=5):
@@ -359,98 +352,18 @@ class RaceCarEnv:
         if self.render_mode != "human":
             return
 
-        if self.splitscreen:
-            # SPLITSCREEN MODE
-            self.surface_3d.fill((135, 206, 235))  # Sky color
-            self.surface_2d.fill((0, 255, 0))      # Grass background
+        self.screen.fill((135, 206, 235))  # Sky color
+        self.render_3d(self.screen)
+        self.draw_speed_bar(self.screen)
+        
 
-            self.render_3d(self.surface_3d)
-            self.render_2d(self.surface_2d)
-
-            self.screen.blit(self.surface_3d, (0, 0))
-            self.screen.blit(self.surface_2d, (960, 0))
-        else:
-            # SINGLE SCREEN MODE WITH MINIMAP
-            self.screen.fill((135, 206, 235))  # Sky color
-            self.render_3d(self.screen)
-            self.draw_speed_bar(self.screen)
-            
-
-            # Draw minimap in top-right
-            self.render_minimap(self.surface_minimap)
-            self.screen.blit(self.surface_minimap, (self.WIDTH - 310, 10))  # 10px margin
+        # Draw minimap in top-right
+        self.render_minimap(self.surface_minimap)
+        self.screen.blit(self.surface_minimap, (self.WIDTH - 310, 10))  # 10px margin
 
         pygame.display.flip()
         self.clock.tick(30)
 
-
-    def render_2d(self, surface):
-        surface.fill((0, 255, 0))  # green background
-
-        # Center the view on the middle of the track (not the car)
-        center_x = np.mean(self.center_x)
-        center_y = np.mean(self.center_y)
-        view_center_x = 960 // 2
-        view_center_y = self.HEIGHT // 2
-
-        def offset_point(p):
-            return (int(p[0] - center_x + view_center_x),
-                    int(p[1] - center_y + view_center_y))
-
-        # Draw track surface
-        track_polygon = [offset_point(p) for p in zip(self.left_x, self.left_y)] + \
-                        [offset_point(p) for p in zip(reversed(self.right_x), reversed(self.right_y))]
-        pygame.draw.polygon(surface, (0, 0, 0), track_polygon)
-
-        # Draw track boundaries
-        pygame.draw.lines(surface, (255, 255, 255), True,
-                        [offset_point(p) for p in zip(self.left_x, self.left_y)], 2)
-        pygame.draw.lines(surface, (255, 255, 255), True,
-                        [offset_point(p) for p in zip(self.right_x, self.right_y)], 2)
-
-        # Draw checkpoints
-        for i, (start, end) in enumerate(self.checkpoints):
-            start_pos = offset_point(start)
-            end_pos = offset_point(end)
-            color = (0, 0, 255) if not self.checkpoints_passed[i] else (100, 100, 100)
-            if i == len(self.checkpoints) - 1:
-                # RED FINISH LINE
-                pygame.draw.line(surface, (255, 0, 0), start_pos, end_pos, 3)
-            else:
-                color = (0, 0, 255) if not self.checkpoints_passed[i] else (100, 100, 100)
-                pygame.draw.line(surface, color, start_pos, end_pos, 3)
-
-        # Draw sensors
-        for i, distance in enumerate(self.sensor_data):
-            sensor_angle = self.car_angle + self.sensor_angles[i]
-            dx = np.cos(np.radians(sensor_angle))
-            dy = np.sin(np.radians(sensor_angle))
-            sensor_end = self.car_position + np.array([dx, dy]) * self.sensor_range
-            color = (255, 0, 0) if distance != self.sensor_range else (0, 255, 0)
-            pygame.draw.line(surface, color, offset_point(self.car_position), offset_point(sensor_end), 2)
-
-        # Draw car and speed bar
-        self.draw_rotated_car(surface, offset_point)
-        self.draw_speed_bar(surface)
-
-
-
-    def draw_rotated_car(self, surface, offset_point):
-        """Draws the rotated car image at its current position, adjusted for camera offset."""
-        # Rotate the car image based on current angle
-        rotated_car = pygame.transform.rotate(self.car_image, -self.car_angle)
-
-        # Offset the car position to center it in the 2D panel
-        car_pos_offset = offset_point(self.car_position)
-
-        # Get the new rect and draw it
-        car_rect = rotated_car.get_rect(center=car_pos_offset)
-        surface.blit(rotated_car, car_rect.topleft)
-        def draw_rotated_car(self, surface):
-            rotated_car = pygame.transform.rotate(self.car_image, -self.car_angle)
-            car_rect = rotated_car.get_rect(center=self.car_position.astype(int))
-            surface.blit(rotated_car, car_rect.topleft)
-            
             
     def render_3d(self, surface):
         surface.fill((135, 206, 235))  # Sky color
@@ -462,14 +375,13 @@ class RaceCarEnv:
         right = np.array([np.cos(car_angle_rad + np.pi / 2), np.sin(car_angle_rad + np.pi / 2)])
 
         # Adjust screen width based on mode
-        screen_width = 960 if self.splitscreen else self.WIDTH
-        screen_center_x = screen_width // 2
+        screen_center_x = self.WIDTH // 2
 
         scale_x = 300
         scale_y = 6000
         horizon_y = int(self.HEIGHT * 0.2)
 
-        pygame.draw.rect(surface, (50, 200, 50), (0, horizon_y, screen_width, self.HEIGHT - horizon_y))
+        pygame.draw.rect(surface, (50, 200, 50), (0, horizon_y, self.WIDTH, self.HEIGHT - horizon_y))
 
         # Closest point on centerline to car
         closest_idx = np.argmin(np.hypot(self.center_x - car_pos[0], self.center_y - car_pos[1]))
@@ -537,7 +449,7 @@ class RaceCarEnv:
         triangle_base = 300
 
         # Screen position: center bottom of the 3D panel (960px wide)
-        center_x = self.WIDTH // 4 if self.splitscreen else self.WIDTH // 2 
+        center_x = self.WIDTH // 2 
         center_y = self.HEIGHT - 200  # a bit above the bottom edge
 
         # Define triangle points (pointing up)
@@ -606,9 +518,6 @@ class RaceCarEnv:
                 int((p[0] - center_x) * scale + mid_w),
                 int((p[1] - center_y) * scale + mid_h)
             )
-        
-        # Draw Minimap
-        self.draw_speed_bar(surface)
 
         # Draw track
         track_polygon = [scale_point(p) for p in zip(self.left_x, self.left_y)] + \
