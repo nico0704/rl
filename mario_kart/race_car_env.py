@@ -21,7 +21,7 @@ class RaceCarEnv:
         self.right_boundary_tree = KDTree(np.column_stack((self.right_x, self.right_y)))
 
         # Generate checkpoints
-        self.num_checkpoints = 80
+        self.num_checkpoints = 20
         self.checkpoints = self.generate_checkpoints()
 
         # car
@@ -373,6 +373,8 @@ class RaceCarEnv:
             # SINGLE SCREEN MODE WITH MINIMAP
             self.screen.fill((135, 206, 235))  # Sky color
             self.render_3d(self.screen)
+            self.draw_speed_bar(self.screen)
+            
 
             # Draw minimap in top-right
             self.render_minimap(self.surface_minimap)
@@ -408,10 +410,15 @@ class RaceCarEnv:
 
         # Draw checkpoints
         for i, (start, end) in enumerate(self.checkpoints):
+            start_pos = offset_point(start)
+            end_pos = offset_point(end)
             color = (0, 0, 255) if not self.checkpoints_passed[i] else (100, 100, 100)
             if i == len(self.checkpoints) - 1:
-                color = (255, 0, 0)
-            pygame.draw.line(surface, color, offset_point(start), offset_point(end), 5)
+                # RED FINISH LINE
+                pygame.draw.line(surface, (255, 0, 0), start_pos, end_pos, 3)
+            else:
+                color = (0, 0, 255) if not self.checkpoints_passed[i] else (100, 100, 100)
+                pygame.draw.line(surface, color, start_pos, end_pos, 3)
 
         # Draw sensors
         for i, distance in enumerate(self.sensor_data):
@@ -443,9 +450,8 @@ class RaceCarEnv:
             rotated_car = pygame.transform.rotate(self.car_image, -self.car_angle)
             car_rect = rotated_car.get_rect(center=self.car_position.astype(int))
             surface.blit(rotated_car, car_rect.topleft)
-
-
-
+            
+            
     def render_3d(self, surface):
         surface.fill((135, 206, 235))  # Sky color
 
@@ -470,6 +476,7 @@ class RaceCarEnv:
 
         prev_left = None
         prev_right = None
+        start, end = self.checkpoints[-1]
 
         for i in range(300):
             idx = (closest_idx + i * 4) % len(self.left_x)
@@ -505,9 +512,23 @@ class RaceCarEnv:
 
             prev_left = left_proj
             prev_right = right_proj
+            
+            lx, ly = to_camera(np.array(start))
+            rx, ry = to_camera(np.array(end))
 
+            if ly > 1 and ry > 1:
+                left_proj = (
+                    int(screen_center_x + (lx / ly) * scale_x),
+                    int(horizon_y + scale_y / ly)
+                )
+                right_proj = (
+                    int(screen_center_x + (rx / ry) * scale_x),
+                    int(horizon_y + scale_y / ry)
+                )
+
+                pygame.draw.line(surface, (255, 255, 255), left_proj, right_proj, 2)
+        
         self.draw_hud_car(surface)
-
 
 
     def draw_hud_car(self, surface):
@@ -547,9 +568,9 @@ class RaceCarEnv:
 
     def draw_speed_bar(self, surface):
         bar_width = 30
-        bar_height = 200
-        bar_x = 960 - 50  # relative to the 2D panel
-        bar_y = 700
+        bar_height = 600
+        bar_x = surface.get_width() - 100
+        bar_y = 300
 
         pygame.draw.rect(surface, (0, 0, 0), (bar_x, bar_y, bar_width, bar_height))
         zero_y = bar_y + bar_height // 2
@@ -585,6 +606,9 @@ class RaceCarEnv:
                 int((p[0] - center_x) * scale + mid_w),
                 int((p[1] - center_y) * scale + mid_h)
             )
+        
+        # Draw Minimap
+        self.draw_speed_bar(surface)
 
         # Draw track
         track_polygon = [scale_point(p) for p in zip(self.left_x, self.left_y)] + \
