@@ -5,14 +5,15 @@ This project is the second mini-project for the reinforcement learning course. I
 
 ### Setup
 ```bash
-pip install torch ???
+pip install numpy
+pip install torch torchvision torchaudio
 pip install pygame
+pip install scipy
 ```
 
 ---
-
-### [Train](/mario_kart/train_ppo.py)
-This section describs the training-part for the mario kart game. A more detailed description of the file is [here](/mario_kart/README.md#project-description). 
+### [Train](/mario_kart/train.py)
+This section describs the training-part for the mario kart game. A more detailed description of the file is [here](/mario_kart/train.py#L0). 
 
 #### Configuration:
 ##### Environment hyperparameter
@@ -38,13 +39,13 @@ This section describs the training-part for the mario kart game. A more detailed
 
 #### Run:
 ```bash
-python train_ppo.py
+python train.py
 ```
 
 ---
 
 ### [Test](/mario_kart/test.py)
-This section describs the testing-part for the mario kart game. A more detailed description of the file is [here](/mario_kart/README.md#project-description). 
+This section describs the testing-part for the mario kart game. A more detailed description of the file is [here](/mario_kart/test.py#L0). 
 
 #### Configuration:
 - `render`: defines whether the track should be rendered | default: True
@@ -52,8 +53,10 @@ This section describs the testing-part for the mario kart game. A more detailed 
 
 #### Run:
 ```bash
-python test.py
+python test.py --run_name <run-folder> --num_episodes <numb-testing-episodes>
 ```
+- `--run_name`: name of the run folder to load (if omitted latest is used)
+- `--num_episodes`: number of episodes to run for testing (default: 10)
 
 ---
 
@@ -61,12 +64,3 @@ python test.py
 
 --- 
 
-### Project-Description
-
-#### [PPO](ppo.py)
-
-#### [Environment](race_car_env.py)
-
-#### [Training](train_ppo.py)
-
-#### [Testing](test.py)
