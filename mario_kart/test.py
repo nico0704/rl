@@ -1,4 +1,7 @@
 #### Test Script for PPO Agent on RaceCarEnv ####
+# This script was adapted from:
+# https://github.com/nikhilbarhate99/PPO-PyTorch/tree/master
+# 
 # Usage:
 #     python test.py  # Loads the latest run automatically
 #     python test.py --run_name ppo_2025-03-25

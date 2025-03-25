@@ -1,3 +1,6 @@
+# This script was adapted from:
+# https://github.com/nikhilbarhate99/PPO-PyTorch/tree/master
+
 import torch
 import torch.nn as nn
 from torch.distributions import MultivariateNormal

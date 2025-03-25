@@ -1,4 +1,7 @@
 #### Train Script for PPO Agent on RaceCarEnv ####
+# This script was adapted from:
+# https://github.com/nikhilbarhate99/PPO-PyTorch/tree/master
+# 
 # Usage:
 #     python train.py
 # Description:
@@ -7,6 +10,7 @@
 #     - Saves:
 #         - Model weights to:      runs/<run_name>/<run_name>.pth
 #         - Config file to:        runs/<run_name>/config.yaml
+
 
 import os
 from race_car_env import RaceCarEnv
