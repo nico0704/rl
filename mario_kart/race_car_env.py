@@ -7,7 +7,7 @@ class RaceCarEnv:
 
     def __init__(self, track_width=80, track_radius=300, render_mode="human"):
         # screen settings
-        self.WIDTH, self.HEIGHT = 1000, 1000
+        self.WIDTH, self.HEIGHT = 1920, 1000
         self.track_width = track_width
         self.track_radius = track_radius
 
@@ -54,12 +54,12 @@ class RaceCarEnv:
             self.screen = pygame.display.set_mode((self.WIDTH, self.HEIGHT))
             self.clock = pygame.time.Clock()
 
-        # 3D rendering
-        self.use_3d_view = True  # Toggle this to switch views
-        self.hud_car_image = pygame.image.load("images/3d_car.png")
-        self.hud_car_image = pygame.transform.scale(self.hud_car_image, (600, 600)) 
+        self.surface_3d = pygame.Surface((960, self.HEIGHT))
+        self.surface_2d = pygame.Surface((960, self.HEIGHT))
         self.triangle_steer = 0
-        self.smoothed_triangle_angle = 0 
+        self.smoothed_triangle_angle = 0
+        self.splitscreen = False
+        self.surface_minimap = pygame.Surface((300, 300), pygame.SRCALPHA)  # Transparent surface
 
     def generate_wavy_loop(self, amplitude=40, frequency=5):
         """Generates a closed-loop wavy track."""
@@ -140,18 +140,18 @@ class RaceCarEnv:
                 self.checkpoints_passed[self.current_checkpoint] = True
                 self.current_checkpoint += 1
                 # print(f'CHECKPOINT {self.current_checkpoint} CROSSED!')
-                return self.current_checkpoint  # Reward for crossing a checkpoint
+                return self.current_checkpoint, False  # Reward for crossing a checkpoint
 
         # If all checkpoints are passed, activate finish line
         if self.current_checkpoint == self.num_checkpoints and not self.checkpoints_passed[-1]:
             start, end = self.checkpoints[-1]  # Finish line is at the last checkpoint
-            if self.point_line_distance((car_x, car_y), start, end) < self.car_radius:
+            if self.point_line_distance((car_x, car_y), start, end) < self.car_radius * 2:
                 self.checkpoints_passed[-1] = True
                 print('FINISH LINE CROSSED!')
-                return 100.0  # Reward for completing the track
+                return 100.0, True  # Reward for completing the track
                 
 
-        return 0.0  # No reward if no checkpoint was crossed
+        return 0.0, False # No reward if no checkpoint was crossed
     
     def point_line_distance(self, point, line_start, line_end):
         """ Berechnet die minimale Distanz eines Punktes zu einer Linie """
@@ -228,10 +228,9 @@ class RaceCarEnv:
         self.car_angle += steer * self.TURN_SPEED
 
         # for visualization
-        if self.use_3d_view:
-            self.triangle_steer = steer
-            smoothing_rate = 0.05  # lower = slower turning
-            self.smoothed_triangle_angle += smoothing_rate * (self.triangle_steer - self.smoothed_triangle_angle)
+        self.triangle_steer = steer
+        smoothing_rate = 0.05  # lower = slower turning
+        self.smoothed_triangle_angle += smoothing_rate * (self.triangle_steer - self.smoothed_triangle_angle)
 
 
         # Auto bewegen
@@ -243,8 +242,8 @@ class RaceCarEnv:
         self.sensor_data = self.get_sensor_readings()
 
         # **Checkpoints belohnen (Belohnung zwischen 0 und 1 normalisieren)**
-        checkpoint_reward = self.check_checkpoint_crossed() / self.num_checkpoints
-        
+        checkpoint_reward, finished = self.check_checkpoint_crossed()
+        checkpoint_reward /= self.num_checkpoints
 
         # **Geschwindigkeitsbelohnung normalisieren**
         if self.car_speed > 0:
@@ -261,11 +260,8 @@ class RaceCarEnv:
         # **Finaler Reward: Kombiniere alle Belohnungen**
         reward = checkpoint_reward + speed_reward + track_penalty
 
-        # **Falls das Auto von der Strecke ist, Episode beenden**
-        done = off_track  # Episode endet, wenn das Auto ins Ziel kommt oder off-track ist
-
         # **Status zurückgeben**
-        return np.hstack(([self.car_speed], [self.car_angle / 180], self.sensor_data)), reward, done
+        return np.hstack(([self.car_speed], [self.car_angle / 180], self.sensor_data)), reward, off_track or finished
 
     def line_intersection(self, p1, p2, p3, p4):
         """Returns the intersection point of two line segments (p1, p2) and (p3, p4), or None if no intersection."""
@@ -359,68 +355,99 @@ class RaceCarEnv:
         return (min_dist_left > self.car_radius) and (min_dist_right > self.car_radius)
 
 
-    # draws environment in pygame
     def render(self):
         if self.render_mode != "human":
             return
 
-        # 3D rendering
-        if self.use_3d_view:
-            self.render_3d()
-            return
+        if self.splitscreen:
+            # SPLITSCREEN MODE
+            self.surface_3d.fill((135, 206, 235))  # Sky color
+            self.surface_2d.fill((0, 255, 0))      # Grass background
 
-        self.screen.fill((0, 255, 0)) #green background
+            self.render_3d(self.surface_3d)
+            self.render_2d(self.surface_2d)
 
-        # Create a filled track area by combining left and right boundary points
-        track_polygon = list(zip(self.left_x, self.left_y)) + list(zip(reversed(self.right_x), reversed(self.right_y)))
-        pygame.draw.polygon(self.screen, (0, 0, 0), track_polygon)  # Fill track with white
+            self.screen.blit(self.surface_3d, (0, 0))
+            self.screen.blit(self.surface_2d, (960, 0))
+        else:
+            # SINGLE SCREEN MODE WITH MINIMAP
+            self.screen.fill((135, 206, 235))  # Sky color
+            self.render_3d(self.screen)
 
-        # Draw track boundaries
-        pygame.draw.lines(self.screen, (255, 255, 255), closed=True, 
-        points=list(zip(self.left_x, self.left_y)), width=2)
-        pygame.draw.lines(self.screen, (255, 255, 255), closed=True, 
-        points=list(zip(self.right_x, self.right_y)), width=2)
-
-        # Draw checkpoints
-        for i, (start, end) in enumerate(self.checkpoints):
-            if not self.checkpoints_passed[i]:
-                color = (0, 0, 255)
-                pygame.draw.line(self.screen, color, start, end, 5)
-            if i == len(self.checkpoints) - 1:
-                color = (255, 0, 0)
-                pygame.draw.line(self.screen, color, start, end, 5)
-
-        # Draw sensors
-        for i, distance in enumerate(self.sensor_data):
-            sensor_angle = self.car_angle + self.sensor_angles[i]
-            sensor_dx = np.cos(np.radians(sensor_angle))
-            sensor_dy = np.sin(np.radians(sensor_angle))
-
-            # sensor should keep the length
-            sensor_x = self.car_position[0] + sensor_dx * self.sensor_range
-            sensor_y = self.car_position[1] + sensor_dy * self.sensor_range
-
-            # red for boundary, green for nothing
-            color = (255, 0, 0) if distance != self.sensor_range else (0, 255, 0)
-            pygame.draw.line(self.screen, color, self.car_position.astype(int), (int(sensor_x), int(sensor_y)), 2)
-        
-        self.draw_rotated_car()
-        self.draw_speed_bar()
+            # Draw minimap in top-right
+            self.render_minimap(self.surface_minimap)
+            self.screen.blit(self.surface_minimap, (self.WIDTH - 310, 10))  # 10px margin
 
         pygame.display.flip()
         self.clock.tick(30)
 
 
-    # Draw car
-    def draw_rotated_car(self):
-        """Rotates and draws the car image at its current position."""
-        rotated_car = pygame.transform.rotate(self.car_image, -self.car_angle)  # Rotate counterclockwise
-        car_rect = rotated_car.get_rect(center=self.car_position.astype(int))  # Position the image
-        self.screen.blit(rotated_car, car_rect.topleft)  # Draw the car
+    def render_2d(self, surface):
+        surface.fill((0, 255, 0))  # green background
+
+        # Center the view on the middle of the track (not the car)
+        center_x = np.mean(self.center_x)
+        center_y = np.mean(self.center_y)
+        view_center_x = 960 // 2
+        view_center_y = self.HEIGHT // 2
+
+        def offset_point(p):
+            return (int(p[0] - center_x + view_center_x),
+                    int(p[1] - center_y + view_center_y))
+
+        # Draw track surface
+        track_polygon = [offset_point(p) for p in zip(self.left_x, self.left_y)] + \
+                        [offset_point(p) for p in zip(reversed(self.right_x), reversed(self.right_y))]
+        pygame.draw.polygon(surface, (0, 0, 0), track_polygon)
+
+        # Draw track boundaries
+        pygame.draw.lines(surface, (255, 255, 255), True,
+                        [offset_point(p) for p in zip(self.left_x, self.left_y)], 2)
+        pygame.draw.lines(surface, (255, 255, 255), True,
+                        [offset_point(p) for p in zip(self.right_x, self.right_y)], 2)
+
+        # Draw checkpoints
+        for i, (start, end) in enumerate(self.checkpoints):
+            color = (0, 0, 255) if not self.checkpoints_passed[i] else (100, 100, 100)
+            if i == len(self.checkpoints) - 1:
+                color = (255, 0, 0)
+            pygame.draw.line(surface, color, offset_point(start), offset_point(end), 5)
+
+        # Draw sensors
+        for i, distance in enumerate(self.sensor_data):
+            sensor_angle = self.car_angle + self.sensor_angles[i]
+            dx = np.cos(np.radians(sensor_angle))
+            dy = np.sin(np.radians(sensor_angle))
+            sensor_end = self.car_position + np.array([dx, dy]) * self.sensor_range
+            color = (255, 0, 0) if distance != self.sensor_range else (0, 255, 0)
+            pygame.draw.line(surface, color, offset_point(self.car_position), offset_point(sensor_end), 2)
+
+        # Draw car and speed bar
+        self.draw_rotated_car(surface, offset_point)
+        self.draw_speed_bar(surface)
 
 
-    def render_3d(self):
-        self.screen.fill((135, 206, 235))  # Sky
+
+    def draw_rotated_car(self, surface, offset_point):
+        """Draws the rotated car image at its current position, adjusted for camera offset."""
+        # Rotate the car image based on current angle
+        rotated_car = pygame.transform.rotate(self.car_image, -self.car_angle)
+
+        # Offset the car position to center it in the 2D panel
+        car_pos_offset = offset_point(self.car_position)
+
+        # Get the new rect and draw it
+        car_rect = rotated_car.get_rect(center=car_pos_offset)
+        surface.blit(rotated_car, car_rect.topleft)
+        def draw_rotated_car(self, surface):
+            rotated_car = pygame.transform.rotate(self.car_image, -self.car_angle)
+            car_rect = rotated_car.get_rect(center=self.car_position.astype(int))
+            surface.blit(rotated_car, car_rect.topleft)
+
+
+
+    def render_3d(self, surface):
+        surface.fill((135, 206, 235))  # Sky color
 
         car_pos = self.car_position
         car_angle_rad = np.radians(self.car_angle)
@@ -428,25 +455,24 @@ class RaceCarEnv:
         forward = np.array([np.cos(car_angle_rad), np.sin(car_angle_rad)])
         right = np.array([np.cos(car_angle_rad + np.pi / 2), np.sin(car_angle_rad + np.pi / 2)])
 
-        # Camera projection parameters
-        num_segments = 300
-        step = 4  # fewer steps between points = denser projection
-        screen_center_x = self.WIDTH // 2
+        # Adjust screen width based on mode
+        screen_width = 960 if self.splitscreen else self.WIDTH
+        screen_center_x = screen_width // 2
 
         scale_x = 300
         scale_y = 6000
         horizon_y = int(self.HEIGHT * 0.2)
 
-        pygame.draw.rect(self.screen, (50, 200, 50), (0, horizon_y, self.WIDTH, self.HEIGHT - horizon_y))  # Grass
+        pygame.draw.rect(surface, (50, 200, 50), (0, horizon_y, screen_width, self.HEIGHT - horizon_y))
 
-        # Find closest index on centerline
+        # Closest point on centerline to car
         closest_idx = np.argmin(np.hypot(self.center_x - car_pos[0], self.center_y - car_pos[1]))
 
         prev_left = None
         prev_right = None
 
-        for i in range(num_segments):
-            idx = (closest_idx + i * step) % len(self.left_x)
+        for i in range(300):
+            idx = (closest_idx + i * 4) % len(self.left_x)
 
             left_world = np.array([self.left_x[idx], self.left_y[idx]])
             right_world = np.array([self.right_x[idx], self.right_y[idx]])
@@ -460,11 +486,9 @@ class RaceCarEnv:
             lx, ly = to_camera(left_world)
             rx, ry = to_camera(right_world)
 
-            # Clamp near values to avoid division by small y
             ly = max(ly, 1)
             ry = max(ry, 1)
 
-            # Project to screen
             left_proj = (
                 int(screen_center_x + (lx / ly) * scale_x),
                 int(horizon_y + scale_y / ly)
@@ -475,92 +499,107 @@ class RaceCarEnv:
             )
 
             if prev_left and prev_right:
-                pygame.draw.polygon(self.screen, (50, 50, 50), [
+                pygame.draw.polygon(surface, (50, 50, 50), [
                     prev_left, prev_right, right_proj, left_proj
                 ])
 
             prev_left = left_proj
             prev_right = right_proj
 
-            self.draw_hud_car()
-            self.draw_speed_bar()
-
-        pygame.display.flip()
-        self.clock.tick(30)
+        self.draw_hud_car(surface)
 
 
-    def draw_hud_car(self):
-        # Triangle size
+
+    def draw_hud_car(self, surface):
+        # Triangle size (controls how big the car triangle appears in 3D view)
         triangle_height = 150
         triangle_base = 300
 
-        # Screen position
-        center_x = self.WIDTH // 2
-        center_y = self.HEIGHT - 200  # Position above bottom
+        # Screen position: center bottom of the 3D panel (960px wide)
+        center_x = self.WIDTH // 4 if self.splitscreen else self.WIDTH // 2 
+        center_y = self.HEIGHT - 200  # a bit above the bottom edge
 
-        # Triangle in local coordinates pointing up (forward)
+        # Define triangle points (pointing up)
         points = np.array([
-            [0, -triangle_height],  # Tip
-            [-triangle_base / 2, 0],  # Bottom left
-            [triangle_base / 2, 0]    # Bottom right
+            [0, -triangle_height],           # Tip (front)
+            [-triangle_base / 2, 0],         # Bottom left
+            [triangle_base / 2, 0]           # Bottom right
         ])
 
-        # Convert steering input (-1 to 1) into rotation angle in degrees
-        max_steer_angle = 60  # degrees left/right max
+        # Convert smoothed steering input to rotation angle
+        max_steer_angle = 60  # degrees
         steer_angle = np.clip(self.smoothed_triangle_angle, -1.0, 1.0) * max_steer_angle
-
-        # Convert to radians for rotation
         angle_rad = np.radians(steer_angle)
 
-        # Rotate the triangle based on steering
+        # Rotation matrix
         rotation_matrix = np.array([
             [np.cos(angle_rad), -np.sin(angle_rad)],
             [np.sin(angle_rad),  np.cos(angle_rad)]
         ])
         rotated_points = points @ rotation_matrix.T
 
-        # Translate to bottom-center screen
+        # Translate to center position
         translated_points = rotated_points + np.array([center_x, center_y])
 
-        # Draw the red triangle
-        pygame.draw.polygon(self.screen, (255, 0, 0), translated_points.astype(int))
+        # Draw the triangle
+        pygame.draw.polygon(surface, (255, 0, 0), translated_points.astype(int))
 
 
-    def draw_speed_bar(self):
-        # Bar dimensions
-        # bar_width = 30
-        # bar_height = 600
-        # bar_x = self.WIDTH - 50
-        # bar_y = self.HEIGHT // 2 - bar_height // 2
-
+    def draw_speed_bar(self, surface):
         bar_width = 30
         bar_height = 200
-        bar_x = self.WIDTH - 50
+        bar_x = 960 - 50  # relative to the 2D panel
         bar_y = 700
 
-        # Draw bar background
-        pygame.draw.rect(self.screen, (0, 0, 0), (bar_x, bar_y, bar_width, bar_height))
-
-        # Draw center (zero) line
+        pygame.draw.rect(surface, (0, 0, 0), (bar_x, bar_y, bar_width, bar_height))
         zero_y = bar_y + bar_height // 2
-        pygame.draw.line(self.screen, (255, 255, 255), (bar_x - 5, zero_y), (bar_x + bar_width + 5, zero_y), 2)
+        pygame.draw.line(surface, (255, 255, 255), (bar_x - 5, zero_y), (bar_x + bar_width + 5, zero_y), 2)
 
-        # Normalize speed and calculate fill height
         normalized_speed = np.clip(self.car_speed / self.MAX_SPEED, -1, 1)
         fill_height = int(abs(normalized_speed) * (bar_height / 2))
 
-        # Determine fill direction and color
         if self.car_speed > 0:
-            fill_color = (200, 0, 0)  # green
+            fill_color = (200, 0, 0)
             fill_rect = (bar_x, zero_y - fill_height, bar_width, fill_height)
         elif self.car_speed < 0:
-            fill_color = (0, 100, 255)  # blue
+            fill_color = (0, 100, 255)
             fill_rect = (bar_x, zero_y, bar_width, fill_height)
         else:
-            fill_color = (100, 100, 100)  # neutral gray
+            fill_color = (100, 100, 100)
             fill_rect = (bar_x, zero_y, bar_width, 2)
 
-        pygame.draw.rect(self.screen, fill_color, fill_rect)
+        pygame.draw.rect(surface, fill_color, fill_rect)
+
+
+    def render_minimap(self, surface):
+        surface.fill((0, 0, 0, 0))  # Clear with transparency
+
+        # Scale down the track
+        scale = 0.15
+        center_x = np.mean(self.center_x)
+        center_y = np.mean(self.center_y)
+        mid_w, mid_h = surface.get_width() // 2, surface.get_height() // 2 - 50
+
+        def scale_point(p):
+            return (
+                int((p[0] - center_x) * scale + mid_w),
+                int((p[1] - center_y) * scale + mid_h)
+            )
+
+        # Draw track
+        track_polygon = [scale_point(p) for p in zip(self.left_x, self.left_y)] + \
+                        [scale_point(p) for p in zip(reversed(self.right_x), reversed(self.right_y))]
+        pygame.draw.polygon(surface, (0, 0, 0), track_polygon)
+
+        # Draw boundaries
+        pygame.draw.lines(surface, (255, 255, 255), True,
+                        [scale_point(p) for p in zip(self.left_x, self.left_y)], 1)
+        pygame.draw.lines(surface, (255, 255, 255), True,
+                        [scale_point(p) for p in zip(self.right_x, self.right_y)], 1)
+
+        # Draw car as small red circle
+        car_pos_scaled = scale_point(self.car_position)
+        pygame.draw.circle(surface, (255, 0, 0), car_pos_scaled, 4)
 
 
     def reset(self):
