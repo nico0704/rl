@@ -53,6 +53,8 @@ class RaceCarEnv:
         self.triangle_steer = 0
         self.smoothed_triangle_angle = 0
         self.surface_minimap = pygame.Surface((300, 300), pygame.SRCALPHA)  # Transparent surface
+        self.font = pygame.font.SysFont("Arial", 20)
+
 
     def generate_wavy_loop(self, amplitude=40, frequency=5):
         """Generates a closed-loop wavy track."""
@@ -219,6 +221,8 @@ class RaceCarEnv:
 
         # Richtung aktualisieren
         self.car_angle += steer * self.TURN_SPEED
+        self.car_angle = (self.car_angle + 180) % 360 - 180
+
 
         # for visualization
         self.triangle_steer = steer
@@ -356,10 +360,11 @@ class RaceCarEnv:
         self.render_3d(self.screen)
         self.draw_speed_bar(self.screen)
         
-
         # Draw minimap in top-right
         self.render_minimap(self.surface_minimap)
         self.screen.blit(self.surface_minimap, (self.WIDTH - 310, 10))  # 10px margin
+
+        self.draw_info_box(self.screen)
 
         pygame.display.flip()
         self.clock.tick(30)
@@ -557,6 +562,28 @@ class RaceCarEnv:
         # Draw car as small red circle
         car_pos_scaled = scale_point(self.car_position)
         pygame.draw.circle(surface, (255, 0, 0), car_pos_scaled, 4)
+
+
+    def draw_info_box(self, surface):
+        box_x, box_y = 20, 20
+        box_width, box_height = 280, 190
+        padding = 10
+
+        # Background box
+        pygame.draw.rect(surface, (30, 30, 30), (box_x, box_y, box_width, box_height))
+        pygame.draw.rect(surface, (255, 255, 255), (box_x, box_y, box_width, box_height), 2)
+
+        # Prepare text
+        speed_text = f"Speed: {self.car_speed:.2f}"
+        angle_text = f"Angle: {self.car_angle:.2f}"
+        sensor_texts = [f"S{i+1}: {s:.1f}" for i, s in enumerate(self.sensor_data)]
+
+        lines = [speed_text, angle_text] + sensor_texts
+
+        # Render lines
+        for i, line in enumerate(lines):
+            text_surface = self.font.render(line, True, (255, 255, 255))
+            surface.blit(text_surface, (box_x + padding, box_y + padding + i * 25))
 
 
     def reset(self):
