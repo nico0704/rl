@@ -13,7 +13,7 @@
 import argparse
 import os
 from ppo import PPO
-from race_car_env import RaceCarEnv
+from env.environment import RaceCarEnv
 from utils import load_config, get_latest_run_name
 
 
@@ -41,7 +41,7 @@ def test():
     max_ep = config["max_ep"]
     render = config.get("render", True)
     
-    env = RaceCarEnv(render_mode="human" if render else "none")
+    env = RaceCarEnv()
     # TODO get from env:
     state_dim = 7
     action_dim = 2
