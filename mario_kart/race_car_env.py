@@ -7,7 +7,7 @@ class RaceCarEnv:
 
     def __init__(self, track_width=80, track_radius=300, render_mode="human"):
         # screen settings
-        self.WIDTH, self.HEIGHT = 1920, 1000
+        self.WIDTH, self.HEIGHT = 1920, 1080
         self.track_width = track_width
         self.track_radius = track_radius
 
@@ -52,8 +52,8 @@ class RaceCarEnv:
 
         self.triangle_steer = 0
         self.smoothed_triangle_angle = 0
-        self.surface_minimap = pygame.Surface((300, 300), pygame.SRCALPHA)  # Transparent surface
-        self.font = pygame.font.SysFont("Arial", 20)
+        self.surface_minimap = pygame.Surface((np.clip(300 * (self.WIDTH / 1920), 0, 300), np.clip(300 * (self.HEIGHT / 1080), 0, 300)), pygame.SRCALPHA)  # Transparent surface
+        self.font = pygame.font.SysFont("Arial", int(np.clip(20 * (self.WIDTH / 1920), 0, 20)))
 
 
     def generate_wavy_loop(self, amplitude=40, frequency=5):
@@ -362,7 +362,7 @@ class RaceCarEnv:
         
         # Draw minimap in top-right
         self.render_minimap(self.surface_minimap)
-        self.screen.blit(self.surface_minimap, (self.WIDTH - 310, 10))  # 10px margin
+        self.screen.blit(self.surface_minimap, (self.WIDTH - np.clip(310 * (self.WIDTH / 1920), 0, 310), 10))  # 10px margin
 
         self.draw_info_box(self.screen)
 
@@ -447,26 +447,27 @@ class RaceCarEnv:
         
         # --- Draw all checkpoints in blue (except finish line) ---
         for i, (start, end) in enumerate(self.checkpoints[:-1]):  # Skip last (finish line)
-            def to_camera(p):
-                rel = p - car_pos
-                cam_x = np.dot(rel, right)
-                cam_y = np.dot(rel, forward)
-                return cam_x, cam_y
+            if self.checkpoints_passed[i] == False:
+                def to_camera(p):
+                    rel = p - car_pos
+                    cam_x = np.dot(rel, right)
+                    cam_y = np.dot(rel, forward)
+                    return cam_x, cam_y
 
-            sx, sy = to_camera(np.array(start))
-            ex, ey = to_camera(np.array(end))
+                sx, sy = to_camera(np.array(start))
+                ex, ey = to_camera(np.array(end))
 
-            if sy > 1 and ey > 1:
-                start_proj = (
-                    int(screen_center_x + (sx / sy) * scale_x),
-                    int(horizon_y + scale_y / sy)
-                )
-                end_proj = (
-                    int(screen_center_x + (ex / ey) * scale_x),
-                    int(horizon_y + scale_y / ey)
-                )
+                if sy > 1 and ey > 1:
+                    start_proj = (
+                        int(screen_center_x + (sx / sy) * scale_x),
+                        int(horizon_y + scale_y / sy)
+                    )
+                    end_proj = (
+                        int(screen_center_x + (ex / ey) * scale_x),
+                        int(horizon_y + scale_y / ey)
+                    )
 
-                pygame.draw.line(surface, (0, 162, 250), start_proj, end_proj, 2)
+                    pygame.draw.line(surface, (0, 162, 250), start_proj, end_proj, 2)
 
                 
         self.draw_hud_car(surface)
@@ -474,12 +475,12 @@ class RaceCarEnv:
 
     def draw_hud_car(self, surface):
         # Triangle size (controls how big the car triangle appears in 3D view)
-        triangle_height = 150
-        triangle_base = 300
+        triangle_height = np.clip(150 * (self.WIDTH / 1920), 0, 150)
+        triangle_base = np.clip(300 * (self.HEIGHT / 1080), 0, 300)
 
         # Screen position: center bottom of the 3D panel (960px wide)
         center_x = self.WIDTH // 2 
-        center_y = self.HEIGHT - 200  # a bit above the bottom edge
+        center_y = self.HEIGHT - np.clip(200 * (self.HEIGHT / 1080), 0, 200)  # a bit above the bottom edge
 
         # Define triangle points (pointing up)
         points = np.array([
@@ -508,10 +509,10 @@ class RaceCarEnv:
 
 
     def draw_speed_bar(self, surface):
-        bar_width = 30
-        bar_height = 600
-        bar_x = surface.get_width() - 100
-        bar_y = 300
+        bar_width = np.clip(30 * (self.WIDTH / 1920), 0, 30)
+        bar_height = np.clip(600 * (self.HEIGHT / 1080), 0, 600)
+        bar_x = surface.get_width() - np.clip(100 * (self.WIDTH / 1920), 0, 100)
+        bar_y = np.clip(300 * (self.HEIGHT / 1080), 0, 300)
 
         pygame.draw.rect(surface, (0, 0, 0), (bar_x, bar_y, bar_width, bar_height))
         zero_y = bar_y + bar_height // 2
@@ -537,10 +538,10 @@ class RaceCarEnv:
         surface.fill((0, 0, 0, 0))  # Clear with transparency
 
         # Scale down the track
-        scale = 0.15
+        scale = np.clip(0.15 * (self.HEIGHT / 1080), 0, 0.15)
         center_x = np.mean(self.center_x)
         center_y = np.mean(self.center_y)
-        mid_w, mid_h = surface.get_width() // 2, surface.get_height() // 2 - 50
+        mid_w, mid_h = surface.get_width() // 2 - np.clip(50 * (self.WIDTH / 1920), 0, 50), surface.get_height() // 2 - np.clip(50 * (self.HEIGHT / 1080), 0, 50)
 
         def scale_point(p):
             return (
@@ -565,15 +566,15 @@ class RaceCarEnv:
 
 
     def draw_info_box(self, surface):
-        box_x, box_y = 20, 20
-        box_width, box_height = 280, 190
-        padding = 10
+        box_x, box_y = np.clip(20 * (self.WIDTH / 1920), 0, 20), np.clip(20 * (self.HEIGHT / 1080), 0, 20)
+        box_width, box_height = np.clip(280 * (self.WIDTH / 1920), 0, 280), np.clip(190 * (self.HEIGHT / 1080), 0, 190)
+        padding = np.clip(10 * (self.HEIGHT / 1080), 0, 10)
 
         # Background box
         pygame.draw.rect(surface, (30, 30, 30), (box_x, box_y, box_width, box_height))
         pygame.draw.rect(surface, (255, 255, 255), (box_x, box_y, box_width, box_height), 2)
 
-        # Prepare text
+
         speed_text = f"Speed: {self.car_speed:.2f}"
         angle_text = f"Angle: {self.car_angle:.2f}"
         sensor_texts = [f"S{i+1}: {s:.1f}" for i, s in enumerate(self.sensor_data)]
@@ -583,7 +584,7 @@ class RaceCarEnv:
         # Render lines
         for i, line in enumerate(lines):
             text_surface = self.font.render(line, True, (255, 255, 255))
-            surface.blit(text_surface, (box_x + padding, box_y + padding + i * 25))
+            surface.blit(text_surface, (box_x + padding, box_y + padding + i * np.clip(25 * (self.HEIGHT / 1080), 0, 25)))
 
 
     def reset(self):
