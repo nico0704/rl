@@ -13,7 +13,7 @@
 
 
 import os
-from race_car_env import RaceCarEnv
+from env.environment import RaceCarEnv
 from ppo import PPO
 import config
 from utils import save_config
