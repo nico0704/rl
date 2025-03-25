@@ -440,6 +440,30 @@ class RaceCarEnv:
 
                 pygame.draw.line(surface, (255, 255, 255), left_proj, right_proj, 2)
         
+        # --- Draw all checkpoints in blue (except finish line) ---
+        for i, (start, end) in enumerate(self.checkpoints[:-1]):  # Skip last (finish line)
+            def to_camera(p):
+                rel = p - car_pos
+                cam_x = np.dot(rel, right)
+                cam_y = np.dot(rel, forward)
+                return cam_x, cam_y
+
+            sx, sy = to_camera(np.array(start))
+            ex, ey = to_camera(np.array(end))
+
+            if sy > 1 and ey > 1:
+                start_proj = (
+                    int(screen_center_x + (sx / sy) * scale_x),
+                    int(horizon_y + scale_y / sy)
+                )
+                end_proj = (
+                    int(screen_center_x + (ex / ey) * scale_x),
+                    int(horizon_y + scale_y / ey)
+                )
+
+                pygame.draw.line(surface, (0, 162, 250), start_proj, end_proj, 2)
+
+                
         self.draw_hud_car(surface)
 
 
