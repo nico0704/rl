@@ -17,7 +17,7 @@ class Renderer:
 
         self.triangle_steer = 0
         self.smoothed_triangle_angle = 0
-        self.surface_minimap = pygame.Surface((np.clip(300 * (self.WIDTH / 1920), 0, 300), np.clip(300 * (self.HEIGHT / 1080), 0, 300)), pygame.SRCALPHA)  # Transparent surface
+        self.surface_minimap = pygame.Surface((np.clip(300 * (self.WIDTH / 1920), 0, 300), np.clip(300 * (self.HEIGHT / 1080), 0, 300)), pygame.SRCALPHA)  # transparent surface
         self.font = pygame.font.SysFont("Arial", int(np.clip(20 * (self.WIDTH / 1920), 0, 20)))
 
 
@@ -27,11 +27,11 @@ class Renderer:
     
     def render(self):
 
-        self.screen.fill((135, 206, 235))  # Sky color
+        self.screen.fill((135, 206, 235))  # sky color
         self.render_3d(self.screen)
         self.draw_speed_bar(self.screen)
         
-        # Draw minimap in top-right
+        # draw minimap in top-right
         self.render_minimap(self.surface_minimap)
         self.screen.blit(self.surface_minimap, (self.WIDTH - np.clip(310 * (self.WIDTH / 1920), 0, 310), 10))  # 10px margin
 
@@ -42,7 +42,6 @@ class Renderer:
 
             
     def render_3d(self, surface):
-        surface.fill((135, 206, 235))  # Sky color
 
         car_pos = self.car.car_position
         car_angle_rad = np.radians(self.car.car_angle)
@@ -50,7 +49,7 @@ class Renderer:
         forward = np.array([np.cos(car_angle_rad), np.sin(car_angle_rad)])
         right = np.array([np.cos(car_angle_rad + np.pi / 2), np.sin(car_angle_rad + np.pi / 2)])
 
-        # Adjust screen width based on mode
+        # adjust screen width based on mode
         screen_center_x = self.WIDTH // 2
 
         scale_x = 300
@@ -59,7 +58,7 @@ class Renderer:
 
         pygame.draw.rect(surface, (50, 200, 50), (0, horizon_y, self.WIDTH, self.HEIGHT - horizon_y))
 
-        # Closest point on centerline to car
+        # closest point on centerline to car
         closest_idx = np.argmin(np.hypot(self.track.center_x - car_pos[0], self.track.center_y - car_pos[1]))
 
         prev_left = None
@@ -116,7 +115,7 @@ class Renderer:
 
                 pygame.draw.line(surface, (255, 255, 255), left_proj, right_proj, 2)
         
-        for i, (start, end) in enumerate(self.track.checkpoints[:-1]):  # Skip last (finish line)
+        for i, (start, end) in enumerate(self.track.checkpoints[:-1]):  # skip last (finish line)
             if self.checkpoints_passed[i] == False:
                 def to_camera(p):
                     rel = p - car_pos
@@ -144,37 +143,37 @@ class Renderer:
 
 
     def draw_hud_car(self, surface):
-        # Triangle size (controls how big the car triangle appears in 3D view)
+        # triangle size (controls how big the car triangle appears in 3D view)
         triangle_height = np.clip(150 * (self.WIDTH / 1920), 0, 150)
         triangle_base = np.clip(300 * (self.HEIGHT / 1080), 0, 300)
 
-        # Screen position: center bottom of the 3D panel (960px wide)
+        # screen position: center bottom of the 3D panel (960px wide)
         center_x = self.WIDTH // 2 
         center_y = self.HEIGHT - np.clip(200 * (self.HEIGHT / 1080), 0, 200)  # a bit above the bottom edge
 
-        # Define triangle points (pointing up)
+        # define triangle points (pointing up)
         points = np.array([
-            [0, -triangle_height],           # Tip (front)
-            [-triangle_base / 2, 0],         # Bottom left
-            [triangle_base / 2, 0]           # Bottom right
+            [0, -triangle_height],           # tip (front)
+            [-triangle_base / 2, 0],         # bottom left
+            [triangle_base / 2, 0]           # bottom right
         ])
 
-        # Convert smoothed steering input to rotation angle
+        # convert smoothed steering input to rotation angle
         max_steer_angle = 60  # degrees
         steer_angle = np.clip(self.smoothed_triangle_angle, -1.0, 1.0) * max_steer_angle
         angle_rad = np.radians(steer_angle)
 
-        # Rotation matrix
+        # rotation matrix
         rotation_matrix = np.array([
             [np.cos(angle_rad), -np.sin(angle_rad)],
             [np.sin(angle_rad),  np.cos(angle_rad)]
         ])
         rotated_points = points @ rotation_matrix.T
 
-        # Translate to center position
+        # translate to center position
         translated_points = rotated_points + np.array([center_x, center_y])
 
-        # Draw the triangle
+        # draw the triangle
         pygame.draw.polygon(surface, (255, 0, 0), translated_points.astype(int))
 
 
@@ -205,9 +204,9 @@ class Renderer:
 
 
     def render_minimap(self, surface):
-        surface.fill((0, 0, 0, 0))  # Clear with transparency
+        surface.fill((0, 0, 0, 0))  # clear with transparency
 
-        # Scale down the track
+        # scale down the track
         scale = np.clip(0.15 * (self.HEIGHT / 1080), 0, 0.15)
         center_x = np.mean(self.track.center_x)
         center_y = np.mean(self.track.center_y)
@@ -219,18 +218,18 @@ class Renderer:
                 int((p[1] - center_y) * scale + mid_h)
             )
 
-        # Draw track
+        # draw track
         track_polygon = [scale_point(p) for p in zip(self.track.left_x, self.track.left_y)] + \
                         [scale_point(p) for p in zip(reversed(self.track.right_x), reversed(self.track.right_y))]
         pygame.draw.polygon(surface, (0, 0, 0), track_polygon)
 
-        # Draw boundaries
+        # draw boundaries
         pygame.draw.lines(surface, (255, 255, 255), True,
                         [scale_point(p) for p in zip(self.track.left_x, self.track.left_y)], 1)
         pygame.draw.lines(surface, (255, 255, 255), True,
                         [scale_point(p) for p in zip(self.track.right_x, self.track.right_y)], 1)
 
-        # Draw car as small red circle
+        # draw car as small red circle
         car_pos_scaled = scale_point(self.car.car_position)
         pygame.draw.circle(surface, (255, 0, 0), car_pos_scaled, 4)
 
@@ -240,7 +239,7 @@ class Renderer:
         box_width, box_height = np.clip(280 * (self.WIDTH / 1920), 0, 280), np.clip(190 * (self.HEIGHT / 1080), 0, 190)
         padding = np.clip(10 * (self.HEIGHT / 1080), 0, 10)
 
-        # Background box
+        # background box
         pygame.draw.rect(surface, (30, 30, 30), (box_x, box_y, box_width, box_height))
         pygame.draw.rect(surface, (255, 255, 255), (box_x, box_y, box_width, box_height), 2)
 
@@ -251,7 +250,7 @@ class Renderer:
 
         lines = [speed_text, angle_text] + sensor_texts
 
-        # Render lines
+        # render lines
         for i, line in enumerate(lines):
             text_surface = self.font.render(line, True, (255, 255, 255))
             surface.blit(text_surface, (box_x + padding, box_y + padding + i * np.clip(25 * (self.HEIGHT / 1080), 0, 25)))

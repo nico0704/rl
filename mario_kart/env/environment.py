@@ -1,4 +1,3 @@
-import pygame
 import numpy as np
 from env.track import Track
 from env.car import Car
@@ -10,7 +9,7 @@ class RaceCarEnv:
     def __init__(self, track_width=80, track_radius=300):
 
         # screen settings
-        self.WIDTH, self.HEIGHT = 1000, 500
+        self.WIDTH, self.HEIGHT = 1920, 1080
 
         # track
         self.track_width = track_width
@@ -18,8 +17,8 @@ class RaceCarEnv:
 
         # checkpoints
         self.num_checkpoints = 20
-        self.current_checkpoint = 0  # Start at the first checkpoint
-        self.checkpoints_passed = [False] * (self.num_checkpoints + 1)  # Extra for finish line
+        self.current_checkpoint = 0  # start at the first checkpoint
+        self.checkpoints_passed = [False] * (self.num_checkpoints + 1)  # extra for finish line
 
         self.renderer = Renderer(self.WIDTH, self.HEIGHT, None, None, self.checkpoints_passed)
 
@@ -31,8 +30,8 @@ class RaceCarEnv:
 
     def reset(self):
 
-        self.current_checkpoint = 0  # Start at the first checkpoint
-        self.checkpoints_passed = [False] * (self.num_checkpoints + 1)  # Extra for finish line
+        self.current_checkpoint = 0 
+        self.checkpoints_passed = [False] * (self.num_checkpoints + 1) 
 
         self.track = Track(self.WIDTH, self.HEIGHT, self.track_width, self.track_radius, self.num_checkpoints, num_points=1000)
         self.car = Car(self.track, car_radius=5, car_speed=0, MAX_SPEED=5, ACCELERATION=0.5, FRICTION=0.5, TURN_SPEED=3, sensor_count=5, sensor_range=100)
@@ -102,15 +101,15 @@ class RaceCarEnv:
     
         car_x, car_y = self.car.car_position
 
-        # Compute distances to left and right boundary
+        # compute distances to left and right boundary
         distances_to_left = np.hypot(car_x - self.track.left_x, car_y - self.track.left_y)
         distances_to_right = np.hypot(car_x - self.track.right_x, car_y - self.track.right_y)
 
-        # Find the closest points on each boundary
+        # find the closest points on each boundary
         min_dist_left = np.min(distances_to_left)
         min_dist_right = np.min(distances_to_right)
 
-        # Ensure car stays within the track including car radius
+        # ensure car stays within the track including car radius
         return (min_dist_left > self.car.car_radius) and (min_dist_right > self.car.car_radius)
     
     
