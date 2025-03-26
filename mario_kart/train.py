@@ -54,9 +54,7 @@ def train():
     save_config(config_path)
     
     env = RaceCarEnv()
-    # TODO get from env:
-    state_dim = 7
-    action_dim = 2
+    state_dim, action_dim = env.get_dims()
     
     ppo_agent = PPO(state_dim, action_dim, lr_actor, lr_critic, gamma, K_epochs, eps_clip, action_std)
     

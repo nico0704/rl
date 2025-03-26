@@ -1,3 +1,14 @@
+#### Environment the PPO-Algorithm is using for training and testing ####
+# 
+# Usage:
+#     via train.py or test.py
+# Description:
+#     - Creates the Environment including different tracks with checkpoints, the car and the renderer
+#     - Uses the action from the agent (throttle and steer) to move the car on the track
+#     - Calculates the reward based on the actions the agent is taking
+#     - Returns the state [car speed, car angle, sensor data] to the agent
+#     - After completing or failing a track a new track is created 
+
 import numpy as np
 from env.track import Track
 from env.car import Car
@@ -6,10 +17,10 @@ import env.utils as Utils
 
 class RaceCarEnv:
     
-    def __init__(self, track_width=80, track_radius=300):
+    def __init__(self, width=1920, height=1080, render=True, sensor_dim=5, track_width=80, track_radius=300):
 
         # screen settings
-        self.WIDTH, self.HEIGHT = 1920, 1080
+        self.WIDTH, self.HEIGHT = width, height
 
         # track
         self.track_width = track_width
@@ -20,7 +31,10 @@ class RaceCarEnv:
         self.current_checkpoint = 0  # start at the first checkpoint
         self.checkpoints_passed = [False] * (self.num_checkpoints + 1)  # extra for finish line
 
-        self.renderer = Renderer(self.WIDTH, self.HEIGHT, None, None, self.checkpoints_passed)
+        # sensor_data
+        self.sensor_dim = sensor_dim
+
+        self.renderer = Renderer(self.WIDTH, self.HEIGHT, None, None, self.checkpoints_passed) if render else None
 
         # track, car and renderer
         self.track = None
@@ -34,11 +48,12 @@ class RaceCarEnv:
         self.checkpoints_passed = [False] * (self.num_checkpoints + 1) 
 
         self.track = Track(self.WIDTH, self.HEIGHT, self.track_width, self.track_radius, self.num_checkpoints, num_points=1000)
-        self.car = Car(self.track, car_radius=5, car_speed=0, MAX_SPEED=5, ACCELERATION=0.5, FRICTION=0.5, TURN_SPEED=3, sensor_count=5, sensor_range=100)
+        self.car = Car(self.track, car_radius=5, car_speed=0, MAX_SPEED=5, ACCELERATION=0.5, FRICTION=0.5, TURN_SPEED=3, sensor_count=self.sensor_dim, sensor_range=100)
 
-        self.renderer.car = self.car
-        self.renderer.track = self.track
-        self.renderer.checkpoints_passed = self.checkpoints_passed
+        if self.renderer is not None:
+            self.renderer.car = self.car
+            self.renderer.track = self.track
+            self.renderer.checkpoints_passed = self.checkpoints_passed
 
         return self.get_state()
     
@@ -47,7 +62,8 @@ class RaceCarEnv:
 
         self.car.step(action)
 
-        self.renderer.step(action)
+        if self.renderer is not None:
+            self.renderer.step(action)
 
         checkpoint_reward, finished = self.check_checkpoint_crossed()
         checkpoint_reward /= self.num_checkpoints
@@ -114,11 +130,16 @@ class RaceCarEnv:
     
     
     def render(self):
-        self.renderer.render()
+        if self.renderer is not None:
+            self.renderer.render()
 
     
     def close(self):
-        self.renderer.close()
+        if self.renderer is not None:
+            self.renderer.close()
+
+    def get_dims(self):
+        return 2 + len(self.car.sensor_data), 2
 
 
 

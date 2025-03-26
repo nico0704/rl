@@ -1,3 +1,13 @@
+#### The tracks which are created by the environment ####
+# 
+# Usage:
+#     via environment.py
+# Description:
+#     - Creates a random circuit track (center line) by modifying the amplitude and the frequency of the generate_wavy_loop function
+#     - Creates the left and right boundaries of the track using the track width and the track radius
+#     - Generates kd-trees with the boundaries to perform better calculations on the boundary points 
+#     - Generates checkpoints and the finish line which is used to calculate the reward
+
 import numpy as np
 from scipy.spatial import KDTree
 

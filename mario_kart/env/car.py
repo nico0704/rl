@@ -1,3 +1,13 @@
+#### The car which is driving on the tracks ####
+# 
+# Usage:
+#     via environment.py
+# Description:
+#     - Stores the current speed and the radius of the car
+#     - Stores the car limits given by the environment like maximal speed, acceleration, turn speed or friction
+#     - Calculates the distance between the car and the boundaries of the track by using the sensors of the car
+#     - Performs a part of the action by moving the car with the step function
+
 import numpy as np
 import env.utils as Utils
 

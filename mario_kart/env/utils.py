@@ -1,3 +1,11 @@
+#### Helper functions which are used for calculations in the environment ####
+# 
+# Usage:
+#     via environment.py and car.py
+# Description:
+#     - Used for checking if the sensors are hitting a boundary
+#     - Used for checking if the car crossed a checkpoint
+
 import numpy as np
 
 def line_intersection(p1, p2, p3, p4):

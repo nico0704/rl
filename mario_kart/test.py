@@ -42,9 +42,7 @@ def test():
     render = config.get("render", True)
     
     env = RaceCarEnv()
-    # TODO get from env:
-    state_dim = 7
-    action_dim = 2
+    state_dim, action_dim = env.get_dims()
     ppo_agent = PPO(state_dim, action_dim, lr_actor, lr_critic, gamma, K_epochs, eps_clip, action_std)
     directory = os.path.join("runs", run_name)
     checkpoint_path = os.path.join(directory, f"{run_name}.pth")

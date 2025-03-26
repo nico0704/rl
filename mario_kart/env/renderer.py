@@ -1,3 +1,15 @@
+#### The renderer which visualizes the environment ####
+# 
+# Usage:
+#     via environment.py
+# Description:
+#     - Shows a realtime visualization showing the car driving the track which contains:
+#       - A 3D visualization of the track, the checkpoints and the finish line
+#       - A triangle as car showing the direction in which the car is driving
+#       - A minimap in the top right corner showing a 2D top view of the track with a red dot as car indicator
+#       - A speed bar visualizing the car speed
+#       - A info box in the top left corner showing the current state [car speed, car angle, sensor data]
+
 import pygame
 import numpy as np
 
