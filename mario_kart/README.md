@@ -7,6 +7,8 @@ This project is the second mini-project for the reinforcement learning course. I
 ```bash
 pip install numpy
 pip install torch torchvision torchaudio
+pip install numpy
+pip install torch torchvision torchaudio
 pip install pygame
 pip install scipy
 pip install pyyaml
@@ -105,6 +107,7 @@ This section describes the training-part for the driving simulation. A more deta
 #### Run:
 ```bash
 python train.py
+python train.py
 ```
 
 ---
@@ -118,6 +121,8 @@ python test.py --run_name <run-folder> --num_episodes <num-testing-episodes>
 ```
 - `--run_name`: name of the run folder to load (if omitted latest is used)
 - `--num_episodes`: number of episodes to run for testing (default: 10)
+- `--run_name`: name of the run folder to load (if omitted latest is used)
+- `--num_episodes`: number of episodes to run for testing (default: 10)
 
 ---
 
@@ -127,6 +132,9 @@ python test.py --run_name <run-folder> --num_episodes <num-testing-episodes>
   <img src="results/track2.gif" width="30%" />
   <img src="results/track3.gif" width="30%" />
 </p>
+
+[![Demo-Video](https://img.youtube.com/vi/Y9vWKYbkDhk/0.jpg)](https://youtu.be/Y9vWKYbkDhk)
+
 
 --- 
 
