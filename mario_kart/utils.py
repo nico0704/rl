@@ -26,6 +26,12 @@ def save_config(path):
         "print_freq": config.print_freq,
         "save_model_freq": config.save_model_freq,
         "render": config.render,
+        "screen_width": config.screen_width,
+        "screen_height": config.screen_height,
+        "sensor_dim": config.sensor_dim,
+        "num_checkpoints": config.num_checkpoints,
+        "track_width": config.track_width,
+        "track_radius": config.track_radius
     }
     with open(path, "w") as file:
         yaml.dump(config_dict, file, default_flow_style=False)

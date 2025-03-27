@@ -22,7 +22,7 @@ lr_critic = 0.001
 # Renderer and Logging
 render = True
 render_freq = 50
-print_freq = max_ep * 2
+print_freq = max_ep * 4
 save_model_freq = int(1e4)
 screen_width = 1000
 screen_height = 700

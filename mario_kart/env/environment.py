@@ -71,9 +71,9 @@ class RaceCarEnv:
         if self.car.car_speed > 0:
             speed_reward = (self.car.car_speed / self.car.MAX_SPEED) * 0.75
         elif self.car.car_speed < 0:
-            speed_reward = (self.car.car_speed / self.car.MAX_SPEED) * 0.2 
+            speed_reward = (self.car.car_speed / self.car.MAX_SPEED) * 0.005 
         else:
-            speed_reward = -0.5 
+            speed_reward = -0.5
 
         off_track = not self.is_on_track()
         track_penalty = -1.0 if off_track else 0.0 
