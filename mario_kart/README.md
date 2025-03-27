@@ -184,18 +184,20 @@ python test.py --run_name <run-folder> --num_episodes <num-testing-episodes>
 ```
 - `--run_name`: name of the run folder to load (if omitted latest is used)
 - `--num_episodes`: number of episodes to run for testing (default: 10)
-- `--run_name`: name of the run folder to load (if omitted latest is used)
-- `--num_episodes`: number of episodes to run for testing (default: 10)
 
 ---
 
 ### Results
+<h4 align="center"><b>The agent can perform well on various complex that have different levels of complexity</b></h4>
 <p align="center">
   <img src="results/track1.gif" width="30%" />
   <img src="results/track2.gif" width="30%" />
   <img src="results/track3.gif" width="30%" />
 </p>
-
+<br>
+<br>
+<br>
+<h4 align="center"><b>Demo of training process</b></h4>
 <p align="center">
   <a href="https://youtu.be/Y9vWKYbkDhk">
     <img src="https://img.youtube.com/vi/Y9vWKYbkDhk/0.jpg" alt="Demo-Video">
