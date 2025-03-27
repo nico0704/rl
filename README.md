@@ -11,4 +11,4 @@ This is our solution to the Q-Learning example. It contains a python realization
 This project is the first mini-project for the reinforcement learning course. It simulates a taxi-driving-system. The taxi drivers goal is to get a passenger and deliver him/her to his/hers destination. It's realised as a graph problem, so the goal is to find the shortest path. To find the shortest path we used Q-Learning. 
 
 ## Mini-Project Policy Gradient - [Mario Kart](/mario_kart/)
-This project is the second mini-project for the reinforcement learning course. It simulates the mario kart game. The cars goal is to drive the track as fast as possible without leaving the track. To train the agent we used the PPO. 
+This project is the second mini-project for the reinforcement learning course. It simulates a car driving a race track. The cars goal is to drive the track as fast as possible without leaving the track. To train the agent we used the PPO.
