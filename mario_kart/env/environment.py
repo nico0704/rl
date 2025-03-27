@@ -3,11 +3,11 @@
 # Usage:
 #     via train.py or test.py
 # Description:
-#     - Creates the Environment including different tracks with checkpoints, the car and the renderer
+#     - Creates the environment including different tracks with checkpoints, the car and the renderer
 #     - Uses the action from the agent (throttle and steer) to move the car on the track
 #     - Calculates the reward based on the actions the agent is taking
 #     - Returns the state [car speed, car angle, sensor data] to the agent
-#     - After completing or failing a track a new track is created 
+#     - After completing or failing a track, a new track is created 
 
 import numpy as np
 from env.track import Track
@@ -17,7 +17,7 @@ import env.utils as Utils
 
 class RaceCarEnv:
     
-    def __init__(self, width=1920, height=1080, render=True, sensor_dim=5, track_width=80, track_radius=300):
+    def __init__(self, width=1920, height=1080, render=True, sensor_dim=5, num_checkpoints=80, track_width=80, track_radius=300):
 
         # screen settings
         self.WIDTH, self.HEIGHT = width, height
@@ -27,7 +27,7 @@ class RaceCarEnv:
         self.track_radius = track_radius
 
         # checkpoints
-        self.num_checkpoints = 20
+        self.num_checkpoints = num_checkpoints
         self.current_checkpoint = 0  # start at the first checkpoint
         self.checkpoints_passed = [False] * (self.num_checkpoints + 1)  # extra for finish line
 
@@ -48,7 +48,7 @@ class RaceCarEnv:
         self.checkpoints_passed = [False] * (self.num_checkpoints + 1) 
 
         self.track = Track(self.WIDTH, self.HEIGHT, self.track_width, self.track_radius, self.num_checkpoints, num_points=1000)
-        self.car = Car(self.track, car_radius=5, car_speed=0, MAX_SPEED=5, ACCELERATION=0.5, FRICTION=0.5, TURN_SPEED=3, sensor_count=self.sensor_dim, sensor_range=100)
+        self.car = Car(self.track, car_radius=5, car_speed=0, MAX_SPEED=5, ACCELERATION=0.2, FRICTION=0.5, TURN_SPEED=3, sensor_count=self.sensor_dim, sensor_range=100)
 
         if self.renderer is not None:
             self.renderer.car = self.car

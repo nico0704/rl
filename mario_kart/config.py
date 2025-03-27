@@ -1,5 +1,6 @@
 from datetime import datetime
 
+# Training and Testing
 date_str = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
 run_name = f"ppo_{date_str}"
 
@@ -18,7 +19,16 @@ gamma = 0.99
 lr_actor = 0.0003
 lr_critic = 0.001
 
+# Renderer and Logging
 render = True
 render_freq = 50
 print_freq = max_ep * 2
 save_model_freq = int(1e4)
+screen_width = 1000
+screen_height = 700
+
+# Environment
+sensor_dim = 5
+num_checkpoints = 80
+track_width = 80
+track_radius = 300

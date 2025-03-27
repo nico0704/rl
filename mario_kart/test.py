@@ -32,6 +32,7 @@ def test():
     print(f"Loaded config from: {config_path}")
     print(f"Testing run: '{run_name}' for {num_episodes} episodes")
     
+    # testing parameter
     action_std = config["action_std"]
     K_epochs = config["K_epochs"]
     eps_clip = config["eps_clip"]
@@ -39,9 +40,19 @@ def test():
     lr_actor = config["lr_actor"]
     lr_critic = config["lr_critic"]
     max_ep = config["max_ep"]
+
+    # render parameter
     render = config.get("render", True)
+    screen_width = config["screen_width"]
+    screen_heigth = config["screen_height"]
+
+    # environment parameter
+    sensor_dim = config["sensor_dim"]
+    num_checkpoints = config["num_checkpoints"]
+    track_width = config["track_width"]
+    track_radius = config["track_radius"]
     
-    env = RaceCarEnv()
+    env = RaceCarEnv(width=screen_width, height=screen_heigth, sensor_dim=sensor_dim, num_checkpoints=num_checkpoints, track_width=track_width, track_radius=track_radius, render=render)
     state_dim, action_dim = env.get_dims()
     ppo_agent = PPO(state_dim, action_dim, lr_actor, lr_critic, gamma, K_epochs, eps_clip, action_std)
     directory = os.path.join("runs", run_name)

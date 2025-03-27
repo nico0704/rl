@@ -20,6 +20,7 @@ from utils import save_config
 
 
 def train():
+    # training parameters
     run_name = config.run_name
     max_ep = config.max_ep
     max_train_timestemps = config.max_train_timestemps
@@ -36,11 +37,20 @@ def train():
     lr_actor = config.lr_actor
     lr_critic = config.lr_critic
     
+    # render and logging parameter
     render_freq = config.render_freq
     print_freq = config.print_freq
     save_model_freq = config.save_model_freq
     render = config.render
+    screen_width = config.screen_width
+    screen_heigth = config.screen_height
     
+    # environment parameter
+    sensor_dim = config.sensor_dim
+    num_checkpoints = config.num_checkpoints
+    track_width = config.track_width
+    track_radius = config.track_radius
+
     directory = os.path.join("runs", run_name)
     if os.path.exists(directory):
         print(f"the path: '{directory}' already exists. Choose another name for your env.")
@@ -53,7 +63,7 @@ def train():
     print(f"saving config to {config_path}")
     save_config(config_path)
     
-    env = RaceCarEnv()
+    env = RaceCarEnv(width=screen_width, height=screen_heigth, sensor_dim=sensor_dim, num_checkpoints=num_checkpoints, track_width=track_width, track_radius=track_radius, render=render)
     state_dim, action_dim = env.get_dims()
     
     ppo_agent = PPO(state_dim, action_dim, lr_actor, lr_critic, gamma, K_epochs, eps_clip, action_std)
@@ -67,7 +77,7 @@ def train():
         state = env.reset()
         current_ep_reward = 0
         for t in range(1, max_ep + 1):
-            if render and i_episode % render_freq == 0:
+            if i_episode % render_freq == 0:
                 env.render()
             
             # select action  
