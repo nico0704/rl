@@ -2,6 +2,10 @@
 This project is the second mini-project for the reinforcement learning course. It simulates a car driving a race track. The cars goal is to drive the track as fast as possible without leaving the track. To train the agent we used the PPO. 
 
 ---
+### Goals
+Our goal working on this project was to build an environment which creates a race track and a car. With the help of the agent the car should drive around the track as fast as possible, collecting checkpoints and maximizing the reward. For that the environment gives the agent the car speed, the car radius and the distance between the car and the boundaries (sensor data) on which the agent accelerates and steers the car. Like in the game Mario Kart the car is punished when driving off the track. 
+
+---
 
 ### Setup
 ```bash
