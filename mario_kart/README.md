@@ -7,8 +7,6 @@ This project is the second mini-project for the reinforcement learning course. I
 ```bash
 pip install numpy
 pip install torch torchvision torchaudio
-pip install numpy
-pip install torch torchvision torchaudio
 pip install pygame
 pip install scipy
 pip install pyyaml
@@ -107,8 +105,73 @@ This section describes the training-part for the driving simulation. A more deta
 #### Run:
 ```bash
 python train.py
-python train.py
 ```
+
+---
+
+### PPO Algorithm
+We decided to use the PPO Algorithm because it is good for continuous actions like throttling and steering. Here is some short explaination of the PPO algorithm in our project.
+
+##### Basics
+PPO (Proximal Policy Optimization) is a widely used policy-gradient method in reinforcement learning. It updates the policy in a stable and sample-efficient way by preventing too large policy updates using a clipped surrogate objective.
+This implementation is based on an Actor-Critic architecture with a stochastic Gaussian policy, where actions are sampled from a learned normal distribution.
+
+##### Main Components
+1. Actor-Critic Network
+The policy consists of two neural networks:
+    - Actor: Outputs the mean of the action distribution
+    - Critic: Estimates the value of the current state
+    ```python 
+    # actor
+    self.actor = nn.Sequential(
+                    nn.Linear(state_dim, 64),
+                    nn.Tanh(),
+                    nn.Linear(64, 64),
+                    nn.Tanh(),
+                    nn.Linear(64, action_dim),
+                    nn.Tanh()
+                )
+    # critic
+    self.critic = nn.Sequential(
+                    nn.Linear(state_dim, 64),
+                    nn.Tanh(),
+                    nn.Linear(64, 64),
+                    nn.Tanh(),
+                    nn.Linear(64, 1)
+                )
+    ```
+    [ppo.py line 40-56](ppo.py#L40)
+
+2. Stochastic Action Sampling
+The actor produces the mean of a Gaussian distribution, and the action is sampled from it using a covariance matrix.
+    ```python
+    action_mean = self.actor(state)
+    cov_mat = torch.diag(self.action_var).unsqueeze(dim=0)
+    dist = MultivariateNormal(action_mean, cov_mat)
+    action = dist.sample()
+    ```
+    [ppo.py line 62-65](ppo.py#L62)
+
+3. Decaying Action Standard Deviation
+The standard deviation of the action distribution is gradually decreased during training to reduce exploration over time and encourage exploitation of learned behavior.
+    ```python
+    def decay_action_std(self, decay_rate, min_std):
+        self.action_std = max(self.action_std - decay_rate, min_std)
+        self.set_action_std(self.action_std)
+    ```
+    [ppo.py line 103-105](ppo.py#L103)
+
+4. Policy Update using Clipped Objective
+PPO improves the policy by maximizing the clipped objective function. This avoids large updates that could destabilize learning.
+    ```python
+    # Finding the ratio (pi_theta / pi_theta__old)
+    ratios = torch.exp(logprobs - old_logprobs.detach())
+
+    # Finding Surrogate Loss  
+    surr1 = ratios * advantages
+    surr2 = torch.clamp(ratios, 1-self.eps_clip, 1+self.eps_clip) * advantages
+    ```
+    [ppo.py line 144-149](ppo.py#L144)
 
 ---
 
@@ -133,7 +196,12 @@ python test.py --run_name <run-folder> --num_episodes <num-testing-episodes>
   <img src="results/track3.gif" width="30%" />
 </p>
 
-[![Demo-Video](https://img.youtube.com/vi/Y9vWKYbkDhk/0.jpg)](https://youtu.be/Y9vWKYbkDhk)
+<p align="center">
+  <a href="https://youtu.be/Y9vWKYbkDhk">
+    <img src="https://img.youtube.com/vi/Y9vWKYbkDhk/0.jpg" alt="Demo-Video">
+  </a>
+</p>
+
 
 
 --- 
