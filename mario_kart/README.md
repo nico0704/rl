@@ -123,9 +123,9 @@ python test.py --run_name <run-folder> --num_episodes <num-testing-episodes>
 
 ### Results
 <p align="center">
-  <img src="results/track_gifs/track1.gif" width="30%" />
-  <img src="results/track_gifs/track2.gif" width="30%" />
-  <img src="results/track_gifs/track3.gif" width="30%" />
+  <img src="results/track1.gif" width="30%" />
+  <img src="results/track2.gif" width="30%" />
+  <img src="results/track3.gif" width="30%" />
 </p>
 
 --- 
