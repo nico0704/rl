@@ -17,12 +17,12 @@ pip install pyyaml
 ### Environment
 The environment folder has the following structure:
 
-env/
-├── [car.py](env/car.py)
-├── [environment.py](env/environment.py)
-├── [renderer.py](env/renderer.py)
-├── [track.py](env/track.py)
-├── [utils.py](env/utils.py)
+env/  
+├── [car.py](env/car.py)  
+├── [environment.py](env/environment.py)  
+├── [renderer.py](env/renderer.py)  
+├── [track.py](env/track.py)  
+├── [utils.py](env/utils.py)  
 
 A detailed description for each of these files is written as comments on top of the code.
 
@@ -121,6 +121,7 @@ This implementation is based on an Actor-Critic architecture with a stochastic G
 The policy consists of two neural networks:
     - Actor: Outputs the mean of the action distribution
     - Critic: Estimates the value of the current state
+
     ```python 
     # actor
     self.actor = nn.Sequential(
@@ -144,6 +145,7 @@ The policy consists of two neural networks:
 
 2. Stochastic Action Sampling
 The actor produces the mean of a Gaussian distribution, and the action is sampled from it using a covariance matrix.
+
     ```python
     action_mean = self.actor(state)
     cov_mat = torch.diag(self.action_var).unsqueeze(dim=0)
@@ -154,6 +156,7 @@ The actor produces the mean of a Gaussian distribution, and the action is sample
 
 3. Decaying Action Standard Deviation
 The standard deviation of the action distribution is gradually decreased during training to reduce exploration over time and encourage exploitation of learned behavior.
+
     ```python
     def decay_action_std(self, decay_rate, min_std):
         self.action_std = max(self.action_std - decay_rate, min_std)
@@ -163,6 +166,7 @@ The standard deviation of the action distribution is gradually decreased during 
 
 4. Policy Update using Clipped Objective
 PPO improves the policy by maximizing the clipped objective function. This avoids large updates that could destabilize learning.
+
     ```python
     # Finding the ratio (pi_theta / pi_theta__old)
     ratios = torch.exp(logprobs - old_logprobs.detach())
@@ -205,6 +209,4 @@ python test.py --run_name <run-folder> --num_episodes <num-testing-episodes>
 </p>
 
 
-
---- 
 
